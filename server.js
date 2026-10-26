@@ -20,8 +20,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '6mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ==========================================
+// PERBAIKAN: Session store diarahkan ke /tmp
+// ==========================================
 app.use(session({
-  store: new SQLiteStore({ db: 'sessions-store.db', dir: process.env.DATA_DIR || './data' }),
+  store: new SQLiteStore({ 
+    db: 'sessions.db', 
+    dir: '/tmp' // <--- INI KUNCI PERBAIKANNYA
+  }),
   secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
   resave: false,
   saveUninitialized: false,
