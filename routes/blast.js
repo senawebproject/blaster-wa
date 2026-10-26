@@ -2,8 +2,8 @@ const express = require('express');
 const multer = require('multer');
 const db = require('../db');
 const { requireAuth, requireAuthApi, verifyCsrf } = require('../src/middleware');
-const { parseBuffer } = require('../src/uploadParser');
-const { enqueueJob } = require('../src/blastEngine');
+const { parseBuffer } = require('../src/uploadparser');
+const { enqueueJob } = require('../src/blastengine');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: parseInt(process.env.UPLOAD_MAX_BYTES || '5242880', 10) } });
