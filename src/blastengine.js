@@ -1,7 +1,7 @@
 const db = require('../db');
 const { render } = require('./templateEngine');
 const { getQueue } = require('./queueManager');
-const { getSocket, getState, updateState } = require('./waManager');
+const { getSocket, getState } = require('./waManager');
 
 const DELAY_MIN = parseInt(process.env.BLAST_DELAY_MIN_MS || '15000', 10);
 const DELAY_MAX = parseInt(process.env.BLAST_DELAY_MAX_MS || '45000', 10);
@@ -52,12 +52,22 @@ async function runJob(jobId) {
   for (const r of recipients) {
     const current = getJob(jobId);
     if (!current) return;
-    if (current.status === 'stopping') break;
+    
+    if (current.status === 'stopping') {
+      setJobStatus(jobId, 'cancelled', { finished_at: new Date().toISOString() });
+      return;
+    }
+
     while (current.status === 'paused') {
       await sleep(2000);
       const c = getJob(jobId);
+      if (c.status === 'stopping') {
+        setJobStatus(jobId, 'cancelled', { finished_at: new Date().toISOString() });
+        return;
+      }
       if (c.status !== 'paused') break;
     }
+
     const fresh = getJob(jobId);
     if (!fresh || fresh.status !== 'running') return;
 
