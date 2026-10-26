@@ -1,81 +1,54 @@
-const Database = require('better-sqlite3');
-const fs = require('fs');
-const path = require('path');
+const express = require('express');
+const db = require('../db');
+const { requireAuth, requireAuthApi, verifyCsrf } = require('../src/middleware');
+const { postToSheet } = require('../src/syncservice');
 
-const DB_PATH = process.env.DB_PATH || './data/database.db';
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+const router = express.Router();
 
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+router.get('/templates', requireAuth, (req, res) => {
+  const items = db.prepare('SELECT * FROM templates WHERE user_id = ? ORDER BY id DESC').all(req.session.userId);
+  res.render('templates', { items, username: req.session.username });
+});
 
-db.exec(`
-CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user')),
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+router.get('/api/templates', requireAuthApi, (req, res) => {
+  const items = db.prepare('SELECT * FROM templates WHERE user_id = ? ORDER BY id DESC').all(req.session.userId);
+  res.json(items);
+});
 
-CREATE TABLE IF NOT EXISTS wa_sessions (
-  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  wa_number TEXT,
-  state TEXT NOT NULL DEFAULT 'disconnected'
-    CHECK (state IN ('disconnected','awaiting_pairing','pairing_code_issued','connected','logged_out','banned')),
-  pairing_code TEXT,
-  pairing_expires TEXT,
-  last_connected_at TEXT,
-  last_error TEXT,
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+router.post('/api/templates', requireAuthApi, verifyCsrf, async (req, res) => {
+  const { title, body } = req.body;
+  if (!title || !body) return res.status(400).json({ error: 'title & body required' });
+  
+  const info = db.prepare('INSERT INTO templates (user_id, title, body) VALUES (?, ?, ?)')
+    .run(req.session.userId, title, body);
+    
+  // Kirim ke Google Sheets
+  await postToSheet({ action: 'add_template', id: info.lastInsertRowid, user_id: req.session.userId, title, body });
+  
+  res.json({ id: info.lastInsertRowid });
+});
 
-CREATE TABLE IF NOT EXISTS templates (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  body TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_templates_user ON templates(user_id);
+router.put('/api/templates/:id', requireAuthApi, verifyCsrf, async (req, res) => {
+  const { title, body } = req.body;
+  const row = db.prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  
+  db.prepare("UPDATE templates SET title=?, body=? WHERE id=?").run(title, body, req.params.id);
+  
+  // Kirim ke Google Sheets
+  await postToSheet({ action: 'edit_template', id: row.id, title, body });
+  
+  res.json({ ok: true });
+});
 
-CREATE TABLE IF NOT EXISTS blast_jobs (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  template_id INTEGER REFERENCES templates(id) ON DELETE SET NULL,
-  template_body TEXT NOT NULL,
-  mode TEXT NOT NULL CHECK (mode IN ('immediate','scheduled')),
-  scheduled_at TEXT,
-  status TEXT NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending','running','paused','stopping','done','failed','cancelled')),
-  total INTEGER NOT NULL DEFAULT 0,
-  sent INTEGER NOT NULL DEFAULT 0,
-  failed INTEGER NOT NULL DEFAULT 0,
-  locked_by TEXT,
-  locked_at TEXT,
-  started_at TEXT,
-  finished_at TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_jobs_sched ON blast_jobs(status, scheduled_at);
-CREATE INDEX IF NOT EXISTS idx_jobs_user ON blast_jobs(user_id, created_at DESC);
+router.delete('/api/templates/:id', requireAuthApi, verifyCsrf, async (req, res) => {
+  const row = db.prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
+  if (row) {
+    db.prepare('DELETE FROM templates WHERE id = ?').run(req.params.id);
+    // Kirim ke Google Sheets
+    await postToSheet({ action: 'delete_template', id: row.id });
+  }
+  res.json({ ok: true });
+});
 
-CREATE TABLE IF NOT EXISTS blast_recipients (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  job_id INTEGER NOT NULL REFERENCES blast_jobs(id) ON DELETE CASCADE,
-  name_raw TEXT,
-  phone_raw TEXT NOT NULL,
-  phone_normalized TEXT NOT NULL,
-  is_valid INTEGER NOT NULL DEFAULT 1,
-  status TEXT NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending','sent','failed','skipped')),
-  error_reason TEXT,
-  rendered_message TEXT,
-  sent_at TEXT,
-  attempts INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_recipients_job ON blast_recipients(job_id, status);
-`);
-
-module.exports = db;
+module.exports = router;
