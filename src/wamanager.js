@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const baileys = require('@whiskeysockets/baileys');
 const makeWASocket = baileys.default;
-const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = baileys;
+const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers } = baileys;
 const db = require('../db');
 
 const SESSIONS_DIR = process.env.SESSIONS_DIR || './data/sessions';
@@ -34,7 +34,8 @@ async function startSession(userId, phone) {
     printQRInTerminal: false,
     syncFullHistory: false,
     markOnlineOnConnect: false,
-    browser: ['WA Blaster', 'Chrome', '1.0.0'],
+    // GUNAKAN BROWSER CONFIG YANG DIKENALI WHATSAPP (BUKAN CUSTOM NAME)
+    browser: Browsers.macOS('Google Chrome'), 
     keepAliveIntervalMs: 30000,
     connectTimeoutMs: 60000,
   });
@@ -42,17 +43,21 @@ async function startSession(userId, phone) {
   const entry = { sock, reconnectAttempts: 0 };
   sockets.set(userId, entry);
   
-  let hasRequestedCode = false; // PENGAMAN BIAR GAK REQUEST KODE TERUSAN
+  let hasRequestedCode = false; 
 
   sock.ev.on('creds.update', saveCreds);
 
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
-    // TUNGGU SINYAL QR BARU MINTA KODE
+    // TUNGGU SINYAL QR DAN PASTIKAN BELUM PERNAH MINTA KODE
     if (qr && phone && !hasRequestedCode) {
       hasRequestedCode = true;
       console.log(`[Pairing] Sinyal QR diterima, meminta kode untuk ${phone}...`);
+      
+      // TAMBAHKAN DELAY SEDIKIT BIAR SERVER BENAR-BENAR SIAP
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       try {
         const code = await sock.requestPairingCode(phone);
         const expires = new Date(Date.now() + 60000).toISOString();
@@ -96,7 +101,7 @@ async function startSession(userId, phone) {
       
       const currentState = getState(userId);
       if (currentState.state === 'pairing_code_issued') {
-        return; // Biarin mati aja dulu biar kodenya gak ilang
+        return; 
       }
 
       if (entry.reconnectAttempts < 5) {
@@ -136,8 +141,7 @@ async function disconnect(userId) {
 
 function getSocket(userId) {
   const entry = sockets.get(userId);
-  if (!entry) return null;
-  return entry.sock;
+  return entry ? entry.sock : null;
 }
 
 async function bootAllSessions() {
