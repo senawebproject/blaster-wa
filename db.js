@@ -4,12 +4,24 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const { fetchFromSheet } = require('./src/syncservice');
 
-const DB_PATH = process.env.DB_PATH || './data/database.db';
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+// 1. Tentukan path absolut agar tidak ada kebingungan
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'database.db');
+const DB_DIR = path.dirname(DB_PATH);
 
+// 2. PAKSA buat folder database. Ini "pengaman" kita.
+try {
+  fs.mkdirSync(DB_DIR, { recursive: true });
+  console.log(`[DB Setup] Direktori database dipastikan ada: ${DB_DIR}`);
+} catch (err) {
+  console.error(`[DB Setup] Gagal membuat direktori: ${DB_DIR}`, err);
+  process.exit(1); // Hentikan proses jika folder tidak bisa dibuat
+}
+
+// 3. Buka database
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+console.log(`[DB Setup] Database berhasil dibuka di: ${DB_PATH}`);
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
@@ -61,14 +73,11 @@ CREATE TABLE IF NOT EXISTS blast_recipients (
 async function autoSync() {
   try {
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-    if (userCount > 0) return; // Udah ada data
-
+    if (userCount > 0) return;
     console.log('[Sync] Database kosong. Menarik data dari Google Sheets...');
     
-    // 1. Sync Users
     const users = await fetchFromSheet('users');
     const cost = parseInt(process.env.BCRYPT_COST || '10', 10);
-    
     const insertUser = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)');
     const insertSession = db.prepare('INSERT INTO wa_sessions (user_id) VALUES (?)');
 
@@ -79,24 +88,17 @@ async function autoSync() {
       insertSession.run(info.lastInsertRowid);
     }
 
-    // 2. Sync Templates
     const templates = await fetchFromSheet('templates');
     const insertTemplate = db.prepare('INSERT INTO templates (id, user_id, title, body) VALUES (?, ?, ?, ?)');
     for (const t of templates) {
-       // Pastiin user_id ada di database lokal, kalau nggak skip
        const userExists = db.prepare('SELECT id FROM users WHERE id = ?').get(t.user_id);
-       if (userExists) {
-           insertTemplate.run(t.id, t.user_id, t.title, t.body);
-       }
+       if (userExists) insertTemplate.run(t.id, t.user_id, t.title, t.body);
     }
-    
     console.log(`[Sync] Berhasil import ${users.length} user & ${templates.length} template.`);
   } catch (err) {
     console.error('[Sync] Gagal:', err.message);
   }
 }
-
-// Jalankan sync (tidak perlu await di top-level)
 autoSync();
 
 module.exports = db;
