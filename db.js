@@ -1,54 +1,102 @@
-const express = require('express');
-const db = require('../db');
-const { requireAuth, requireAuthApi, verifyCsrf } = require('../src/middleware');
-const { postToSheet } = require('../src/syncservice');
+const Database = require('better-sqlite3');
+const fs = require('fs');
+const path = require('path');
+const bcrypt = require('bcrypt');
+const { fetchFromSheet } = require('./src/syncservice');
 
-const router = express.Router();
+const DB_PATH = process.env.DB_PATH || './data/database.db';
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
-router.get('/templates', requireAuth, (req, res) => {
-  const items = db.prepare('SELECT * FROM templates WHERE user_id = ? ORDER BY id DESC').all(req.session.userId);
-  res.render('templates', { items, username: req.session.username });
-});
+const db = new Database(DB_PATH);
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
-router.get('/api/templates', requireAuthApi, (req, res) => {
-  const items = db.prepare('SELECT * FROM templates WHERE user_id = ? ORDER BY id DESC').all(req.session.userId);
-  res.json(items);
-});
+db.exec(`
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin','user')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS wa_sessions (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  wa_number TEXT,
+  state TEXT NOT NULL DEFAULT 'disconnected',
+  pairing_code TEXT,
+  pairing_expires TEXT,
+  last_connected_at TEXT,
+  last_error TEXT,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS templates (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS blast_jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  template_body TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  scheduled_at TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  total INTEGER NOT NULL DEFAULT 0,
+  sent INTEGER NOT NULL DEFAULT 0,
+  failed INTEGER NOT NULL DEFAULT 0,
+  locked_by TEXT, locked_at TEXT, started_at TEXT, finished_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS blast_recipients (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_id INTEGER NOT NULL REFERENCES blast_jobs(id) ON DELETE CASCADE,
+  name_raw TEXT, phone_raw TEXT NOT NULL, phone_normalized TEXT NOT NULL,
+  is_valid INTEGER NOT NULL DEFAULT 1, status TEXT NOT NULL DEFAULT 'pending',
+  error_reason TEXT, rendered_message TEXT, sent_at TEXT, attempts INTEGER NOT NULL DEFAULT 0
+);
+`);
 
-router.post('/api/templates', requireAuthApi, verifyCsrf, async (req, res) => {
-  const { title, body } = req.body;
-  if (!title || !body) return res.status(400).json({ error: 'title & body required' });
-  
-  const info = db.prepare('INSERT INTO templates (user_id, title, body) VALUES (?, ?, ?)')
-    .run(req.session.userId, title, body);
+async function autoSync() {
+  try {
+    const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+    if (userCount > 0) return; // Udah ada data
+
+    console.log('[Sync] Database kosong. Menarik data dari Google Sheets...');
     
-  // Kirim ke Google Sheets
-  await postToSheet({ action: 'add_template', id: info.lastInsertRowid, user_id: req.session.userId, title, body });
-  
-  res.json({ id: info.lastInsertRowid });
-});
+    // 1. Sync Users
+    const users = await fetchFromSheet('users');
+    const cost = parseInt(process.env.BCRYPT_COST || '10', 10);
+    
+    const insertUser = db.prepare('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)');
+    const insertSession = db.prepare('INSERT INTO wa_sessions (user_id) VALUES (?)');
 
-router.put('/api/templates/:id', requireAuthApi, verifyCsrf, async (req, res) => {
-  const { title, body } = req.body;
-  const row = db.prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
-  if (!row) return res.status(404).json({ error: 'not_found' });
-  
-  db.prepare("UPDATE templates SET title=?, body=? WHERE id=?").run(title, body, req.params.id);
-  
-  // Kirim ke Google Sheets
-  await postToSheet({ action: 'edit_template', id: row.id, title, body });
-  
-  res.json({ ok: true });
-});
+    for (const u of users) {
+      if (!u.username || !u.password) continue;
+      const hash = bcrypt.hashSync(String(u.password), cost);
+      const info = insertUser.run(u.username, hash, u.role || 'user');
+      insertSession.run(info.lastInsertRowid);
+    }
 
-router.delete('/api/templates/:id', requireAuthApi, verifyCsrf, async (req, res) => {
-  const row = db.prepare('SELECT * FROM templates WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
-  if (row) {
-    db.prepare('DELETE FROM templates WHERE id = ?').run(req.params.id);
-    // Kirim ke Google Sheets
-    await postToSheet({ action: 'delete_template', id: row.id });
+    // 2. Sync Templates
+    const templates = await fetchFromSheet('templates');
+    const insertTemplate = db.prepare('INSERT INTO templates (id, user_id, title, body) VALUES (?, ?, ?, ?)');
+    for (const t of templates) {
+       // Pastiin user_id ada di database lokal, kalau nggak skip
+       const userExists = db.prepare('SELECT id FROM users WHERE id = ?').get(t.user_id);
+       if (userExists) {
+           insertTemplate.run(t.id, t.user_id, t.title, t.body);
+       }
+    }
+    
+    console.log(`[Sync] Berhasil import ${users.length} user & ${templates.length} template.`);
+  } catch (err) {
+    console.error('[Sync] Gagal:', err.message);
   }
-  res.json({ ok: true });
-});
+}
 
-module.exports = router;
+// Jalankan sync (tidak perlu await di top-level)
+autoSync();
+
+module.exports = db;
