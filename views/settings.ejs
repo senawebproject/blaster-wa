@@ -12,7 +12,7 @@
 </style>
 </head>
 <body class="pb-24">
-  <header class="sticky top-0 bg-[#0F1117]/90 backdrop-blur border-b border-white/10">
+  <header class="sticky top-0 bg-[#0F1117]/90 backdrop-blur border-b border-white/10 z-10">
     <div class="max-w-md mx-auto px-4 py-3 font-semibold">Settings</div>
   </header>
 
@@ -40,14 +40,21 @@
     </section>
 
     <section class="card p-4 space-y-3">
-      <h2 class="font-semibold">Disconnect</h2>
-      <p class="text-sm text-gray-400">Putuskan sesi WhatsApp dari server. Anda perlu pairing ulang untuk kirim pesan.</p>
-      <button id="disconnectBtn" class="w-full bg-red-500/80 rounded-xl py-3">Disconnect WhatsApp</button>
+      <h2 class="font-semibold">Ubah Password Akun</h2>
+      <input type="password" id="oldPass" placeholder="Password Lama" class="w-full bg-[#0F1117] border border-white/10 rounded-xl px-3 py-3">
+      <input type="password" id="newPass" placeholder="Password Baru" class="w-full bg-[#0F1117] border border-white/10 rounded-xl px-3 py-3">
+      <button id="btnChangePass" class="w-full bg-blue-500 text-white font-semibold rounded-xl py-3">Simpan Password Baru</button>
     </section>
 
-    <form method="POST" action="/logout" class="w-full">
+    <section class="card p-4 space-y-3">
+      <h2 class="font-semibold">Disconnect</h2>
+      <p class="text-sm text-gray-400">Putuskan sesi WhatsApp dari server. Anda perlu pairing ulang untuk kirim pesan.</p>
+      <button id="disconnectBtn" class="w-full bg-red-500/80 rounded-xl py-3 font-semibold">Disconnect WhatsApp</button>
+    </section>
+
+    <form method="POST" action="/logout" class="w-full pt-4">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <button type="submit" class="w-full bg-white/5 rounded-xl py-3 text-gray-300">Logout Akun</button>
+      <button type="submit" class="w-full bg-white/5 rounded-xl py-3 text-gray-300 border border-white/10">Logout Akun</button>
     </form>
   </main>
 
