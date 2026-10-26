@@ -12,6 +12,12 @@ const scheduler = require('./src/scheduler');
 const { csrfToken } = require('./src/middleware');
 
 const app = express();
+
+// ==========================================
+// INI OBAT DARI ERROR X-FORWARDED-FOR
+// ==========================================
+app.set('trust proxy', 1); 
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -20,13 +26,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '6mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ==========================================
-// PERBAIKAN: Session store diarahkan ke /tmp
-// ==========================================
 app.use(session({
   store: new SQLiteStore({ 
     db: 'sessions.db', 
-    dir: '/tmp' // <--- INI KUNCI PERBAIKANNYA
+    dir: '/tmp'
   }),
   secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
   resave: false,
@@ -56,7 +59,6 @@ app.use(require('./routes/settings'));
 app.use(require('./routes/blast'));
 app.use(require('./routes/api'));
 
-// Home redirect
 app.get('/', (req, res) => {
   if (req.session?.userId) return res.redirect('/dashboard');
   res.redirect('/login');
