@@ -8,18 +8,23 @@ const countdownEl = $('#countdown');
 let countdownHandle = null;
 
 async function refresh() {
-  const r = await fetch('/api/session/status');
-  const j = await r.json();
-  const map = { connected: '🟢 Connected', disconnected: '🔴 Terputus', awaiting_pairing: '🟡 Menunggu pairing', pairing_code_issued: '🟡 Kode aktif', logged_out: '🔴 Logout', banned: '⛔ Diblokir' };
-  badge.textContent = map[j.state] || '—';
-  info.textContent = j.waNumber ? `Nomor: ${j.waNumber}` : 'Belum ada nomor terhubung';
-  if (j.state === 'pairing_code_issued' && j.pairingCode) {
-    pairingBox.classList.remove('hidden');
-    codeEl.textContent = j.pairingCode;
-    startCountdown(j.pairingExpires);
-  } else {
-    pairingBox.classList.add('hidden');
-    if (countdownHandle) clearInterval(countdownHandle);
+  try {
+    const r = await fetch('/api/session/status');
+    const j = await r.json();
+    const map = { connected: '🟢 Connected', disconnected: '🔴 Terputus', awaiting_pairing: '🟡 Menunggu pairing', pairing_code_issued: '🟡 Kode aktif', logged_out: '🔴 Logout', banned: '⛔ Diblokir' };
+    badge.textContent = map[j.state] || '—';
+    info.textContent = j.waNumber ? `Nomor: ${j.waNumber}` : 'Belum ada nomor terhubung';
+    
+    if (j.state === 'pairing_code_issued' && j.pairingCode) {
+      pairingBox.classList.remove('hidden');
+      codeEl.textContent = j.pairingCode;
+      startCountdown(j.pairingExpires);
+    } else {
+      pairingBox.classList.add('hidden');
+      if (countdownHandle) clearInterval(countdownHandle);
+    }
+  } catch (err) {
+    console.error('Gagal refresh status', err);
   }
 }
 
@@ -53,6 +58,25 @@ $('#disconnectBtn').addEventListener('click', async () => {
   if (!confirm('Putuskan sesi WhatsApp?')) return;
   await fetch('/settings/disconnect', { method: 'POST', headers: { 'X-CSRF-Token': window.CSRF } });
   refresh();
+});
+
+$('#btnChangePass')?.addEventListener('click', async () => {
+  const oldPassword = $('#oldPass').value;
+  const newPassword = $('#newPass').value;
+  if (!oldPassword || !newPassword) return alert('Isi semua kolom');
+  
+  const r = await fetch('/api/settings/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF },
+    body: JSON.stringify({ oldPassword, newPassword })
+  });
+  const j = await r.json();
+  if (r.ok) {
+    alert('Password berhasil diubah!');
+    $('#oldPass').value = ''; $('#newPass').value = '';
+  } else {
+    alert('Gagal: ' + j.error);
+  }
 });
 
 refresh();
