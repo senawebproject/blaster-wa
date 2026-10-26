@@ -7,7 +7,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 const db = require('./db');
-const { bootAllSessions } = require('./src/waManager');
+const { bootAllSessions } = require('./src/wamanager');
 const scheduler = require('./src/scheduler');
 const { csrfToken } = require('./src/middleware');
 
