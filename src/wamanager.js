@@ -8,7 +8,7 @@ const db = require('../db');
 const SESSIONS_DIR = process.env.SESSIONS_DIR || './data/sessions';
 fs.mkdirSync(SESSIONS_DIR, { recursive: true });
 
-const sockets = new Map(); // userId -> { sock, reconnectAttempts }
+const sockets = new Map(); 
 
 function updateState(userId, patch) {
   const keys = Object.keys(patch);
@@ -35,6 +35,8 @@ async function startSession(userId, phone) {
     syncFullHistory: false,
     markOnlineOnConnect: false,
     browser: ['WA Blaster', 'Chrome', '1.0.0'],
+    keepAliveIntervalMs: 30000, // <-- Nahan koneksi biar gak gampang putus
+    connectTimeoutMs: 60000,
   });
 
   const entry = { sock, reconnectAttempts: 0 };
@@ -61,16 +63,19 @@ async function startSession(userId, phone) {
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
       const reason = lastDisconnect?.error?.message || 'unknown';
+      console.log(`[WA Close] User ${userId} | Reason: ${reason} | Code: ${code}`);
 
       if (code === DisconnectReason.loggedOut) {
         updateState(userId, { state: 'logged_out', last_error: reason });
         sockets.delete(userId);
         return;
       }
-      if (code === DisconnectReason.forbidden) {
-        updateState(userId, { state: 'banned', last_error: reason });
-        sockets.delete(userId);
-        return;
+      
+      // Jika lagi proses pairing, JANGAN auto-reconnect (biar kode gak ilang)
+      const currentState = getState(userId);
+      if (currentState.state === 'pairing_code_issued') {
+        console.log(`[WA Close] Pairing terputus, kode mungkin expired.`);
+        return; 
       }
 
       if (entry.reconnectAttempts < 5) {
@@ -87,15 +92,21 @@ async function startSession(userId, phone) {
   });
 
   if (phone) {
-    const code = await sock.requestPairingCode(phone);
-    const expires = new Date(Date.now() + 60000).toISOString();
-    updateState(userId, {
-      state: 'pairing_code_issued',
-      wa_number: phone,
-      pairing_code: code,
-      pairing_expires: expires,
-    });
-    return { code, expires };
+    try {
+      const code = await sock.requestPairingCode(phone);
+      const expires = new Date(Date.now() + 60000).toISOString();
+      updateState(userId, {
+        state: 'pairing_code_issued',
+        wa_number: phone,
+        pairing_code: code,
+        pairing_expires: expires,
+      });
+      return { code, expires };
+    } catch (err) {
+      console.error('[Pairing Error]', err.message);
+      updateState(userId, { state: 'disconnected', last_error: err.message });
+      throw err;
+    }
   }
 
   updateState(userId, { state: 'awaiting_pairing' });
