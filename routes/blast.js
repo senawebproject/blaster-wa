@@ -8,11 +8,12 @@ const { enqueueJob } = require('../src/blastengine');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: parseInt(process.env.UPLOAD_MAX_BYTES || '5242880', 10) } });
 
-// Gunakan Memory Cache sementara, JANGAN simpan file besar ke session!
 const pendingUploads = new Map(); 
 
 router.get('/dashboard', requireAuth, (req, res) => {
-  const templates = db.prepare('SELECT id, title, body FROM templates WHERE user_id = ? ORDER BY updated_at DESC').all(req.session.userId);
+  // PERBAIKAN: 'updated_at' diganti jadi 'id' biar gak error
+  const templates = db.prepare('SELECT id, title, body FROM templates WHERE user_id = ? ORDER BY id DESC').all(req.session.userId);
+  
   const history = db.prepare('SELECT id, status, total, sent, failed, created_at FROM blast_jobs WHERE user_id = ? ORDER BY id DESC LIMIT 10').all(req.session.userId);
   res.render('dashboard', { templates, history, username: req.session.username });
 });
@@ -24,7 +25,6 @@ router.post('/api/upload', requireAuthApi, verifyCsrf, upload.single('file'), (r
   try {
     const parsed = parseBuffer(req.file.buffer, name);
     
-    // Simpan di cache memory server sementara
     pendingUploads.set(req.session.userId, {
       rows: parsed.rows,
       phoneColumn: parsed.phoneColumn,
@@ -83,7 +83,6 @@ router.post('/api/blast/start', requireAuthApi, verifyCsrf, (req, res) => {
 
   const jobId = tx();
   
-  // Bersihkan cache setelah dipakai
   pendingUploads.delete(req.session.userId);
 
   if (isImmediate) {
