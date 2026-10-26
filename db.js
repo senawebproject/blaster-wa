@@ -4,22 +4,21 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const { fetchFromSheet } = require('./src/syncservice');
 
-// 1. Tentukan path absolut agar tidak ada kebingungan
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'database.db');
 const DB_DIR = path.dirname(DB_PATH);
 
-// 2. PAKSA buat folder database. Ini "pengaman" kita.
 try {
   fs.mkdirSync(DB_DIR, { recursive: true });
   console.log(`[DB Setup] Direktori database dipastikan ada: ${DB_DIR}`);
 } catch (err) {
   console.error(`[DB Setup] Gagal membuat direktori: ${DB_DIR}`, err);
-  process.exit(1); // Hentikan proses jika folder tidak bisa dibuat
+  process.exit(1); 
 }
 
-// 3. Buka database
 const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
+
+// WAL MODE DIMATIKAN TOTAL KARENA BIKIN CRASH DI RENDER GRATISAN
+// db.pragma('journal_mode = WAL'); 
 db.pragma('foreign_keys = ON');
 console.log(`[DB Setup] Database berhasil dibuka di: ${DB_PATH}`);
 
