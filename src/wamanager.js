@@ -46,7 +46,7 @@ async function startSession(userId, phone = null, attempt = 0) {
     printQRInTerminal: false,
     syncFullHistory: false,
     markOnlineOnConnect: false,
-    browser: Browsers.ubuntu('Chrome'),
+    browser: Browsers.macOS('Chrome'),
     keepAliveIntervalMs: 30000,
     connectTimeoutMs: 60000,
   });
