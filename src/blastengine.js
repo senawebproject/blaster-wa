@@ -1,7 +1,7 @@
 const db = require('../db');
-const { render } = require('./templateEngine');
-const { getQueue } = require('./queueManager');
-const { getSocket, getState } = require('./waManager');
+const { render } = require('./templateengine');
+const { getQueue } = require('./queuemanager');
+const { getSocket, getState } = require('./wamanager');
 
 const DELAY_MIN = parseInt(process.env.BLAST_DELAY_MIN_MS || '15000', 10);
 const DELAY_MAX = parseInt(process.env.BLAST_DELAY_MAX_MS || '45000', 10);
