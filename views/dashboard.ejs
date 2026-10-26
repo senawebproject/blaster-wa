@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Blaster — WA Blaster</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background:#0F1117; color:#F9FAFB; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+  .card { background:#1A1D24; border-radius:1rem; }
+  button, input, select, textarea { font-size:16px; }
+</style>
+</head>
+<body class="pb-24">
+  <header class="sticky top-0 z-10 bg-[#0F1117]/90 backdrop-blur border-b border-white/10">
+    <div class="max-w-md mx-auto flex items-center justify-between px-4 py-3">
+      <div>
+        <div class="text-sm text-gray-400">Login sebagai</div>
+        <div class="font-semibold"><%= username %></div>
+      </div>
+      <a href="/settings" class="text-sm px-3 py-2 rounded-lg bg-white/5" id="waBadge">⏳ Cek WA…</a>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto px-4 py-4 space-y-4">
+
+    <section class="card p-4 space-y-3">
+      <h2 class="font-semibold">1. Pilih Template</h2>
+      <select id="templateSelect" class="w-full bg-[#0F1117] border border-white/10 rounded-xl px-3 py-3">
+        <option value="">— Pilih template —</option>
+        <% templates.forEach(t => { %>
+          <option value="<%= t.id %>" data-body="<%= t.body.replace(/"/g,'&quot;') %>"><%= t.title %></option>
+        <% }) %>
+      </select>
+      <textarea id="templateBody" rows="5" placeholder="Pesan akan muncul di sini, bisa edit…"
+        class="w-full bg-[#0F1117] border border-white/10 rounded-xl px-3 py-3"></textarea>
+      <div class="text-xs text-gray-400">Variabel: <code class="text-emerald-400">{nama}</code> dll.</div>
+    </section>
+
+    <section class="card p-4 space-y-3">
+      <h2 class="font-semibold">2. Upload Kontak (.xlsx / .csv)</h2>
+      <input type="file" id="fileInput" accept=".xlsx,.csv"
+        class="w-full text-sm file:mr-3 file:px-4 file:py-2 file:rounded-lg file:bg-[#10B981] file:text-black file:border-0">
+      <div id="uploadInfo" class="text-sm text-gray-400"></div>
+      <div id="previewWrap" class="hidden">
+        <div class="text-sm mt-2" id="previewSummary"></div>
+        <div class="overflow-x-auto mt-2">
+          <table class="w-full text-xs">
+            <thead id="previewHead" class="text-gray-400"></thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="card p-4 space-y-3">
+      <h2 class="font-semibold">3. Mode Pengiriman</h2>
+      <div class="flex gap-2">
+        <label class="flex-1 cursor-pointer">
+          <input type="radio" name="mode" value="immediate" checked class="peer sr-only">
+          <div class="peer-checked:bg-[#10B981] peer-checked:text-black text-center rounded-xl py-3 bg-white/5">Seketika</div>
+        </label>
+        <label class="flex-1 cursor-pointer">
+          <input type="radio" name="mode" value="scheduled" class="peer sr-only">
+          <div class="peer-checked:bg-[#10B981] peer-checked:text-black text-center rounded-xl py-3 bg-white/5">Jadwal</div>
+        </label>
+      </div>
+      <input type="datetime-local" id="scheduledAt" class="hidden w-full bg-[#0F1117] border border-white/10 rounded-xl px-3 py-3">
+    </section>
+
+    <button id="startBtn" class="w-full bg-[#10B981] text-black font-semibold rounded-xl py-4 text-lg">
+      🚀 Blast
+    </button>
+
+    <section id="progressCard" class="card p-4 space-y-3 hidden">
+      <h2 class="font-semibold">Progress</h2>
+      <div class="text-sm text-gray-400" id="progressText">—</div>
+      <div class="w-full bg-white/10 rounded-full h-3 overflow-hidden">
+        <div id="progressBar" class="h-full bg-[#10B981] transition-all" style="width:0%"></div>
+      </div>
+      <div class="flex gap-2">
+        <button id="pauseBtn" class="flex-1 bg-white/10 rounded-xl py-3">Pause</button>
+        <button id="resumeBtn" class="flex-1 bg-white/10 rounded-xl py-3">Resume</button>
+        <button id="stopBtn" class="flex-1 bg-red-500/80 rounded-xl py-3">Stop</button>
+      </div>
+      <a id="failedLink" href="#" class="hidden text-center block text-sm text-emerald-400 underline">⬇ Unduh log gagal (CSV)</a>
+    </section>
+
+    <section class="card p-4 space-y-2">
+      <h2 class="font-semibold mb-2">Riwayat</h2>
+      <% if (!history.length) { %>
+        <div class="text-sm text-gray-500">Belum ada blast.</div>
+      <% } %>
+      <% history.forEach(h => { %>
+        <div class="flex justify-between text-sm py-2 border-b border-white/5">
+          <span>#<%= h.id %> · <%= h.status %></span>
+          <span class="text-gray-400"><%= h.sent %>/<%= h.total %></span>
+        </div>
+      <% }) %>
+    </section>
+  </main>
+
+  <nav class="fixed bottom-0 inset-x-0 bg-[#0F1117]/95 backdrop-blur border-t border-white/10">
+    <div class="max-w-md mx-auto grid grid-cols-3 text-center text-xs">
+      <a href="/dashboard" class="py-3 text-[#10B981] font-semibold">Blaster</a>
+      <a href="/templates" class="py-3 text-gray-400">Template</a>
+      <a href="/settings" class="py-3 text-gray-400">Settings</a>
+    </div>
+  </nav>
+
+<script>
+  window.CSRF = "<%= csrfToken %>";
+</script>
+<script src="/js/app.js"></script>
+</body>
+</html>
