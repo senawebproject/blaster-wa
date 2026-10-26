@@ -1,0 +1,3 @@
+/* Minimal — Tailwind CDN sudah menangani mayoritas */
+* { -webkit-tap-highlight-color: transparent; }
+html, body { overscroll-behavior-y: contain; }
