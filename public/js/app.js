@@ -115,7 +115,8 @@ function renderProgress(j) {
 }
 
 ['pause','resume','stop'].forEach(k => {
-  $('# + k + 'Btn')?.addEventListener('click', async () => {
+  const el = document.getElementById(k + 'Btn');
+  el?.addEventListener('click', async () => {
     if (!currentJobId) return;
     if (k === 'stop' && !confirm('Yakin stop job ini?')) return;
     await fetch('/api/blast/' + currentJobId + '/' + k, {
