@@ -2,6 +2,8 @@ const express = require('express');
 const { requireAuth, requireAuthApi, verifyCsrf } = require('../src/middleware');
 const { requestPairing, disconnect, getState } = require('../src/wamanager');
 const { normalizePhone } = require('../src/normalizer');
+const bcrypt = require('bcrypt');
+const { postToSheet } = require('../src/syncservice');
 
 const router = express.Router();
 
@@ -36,6 +38,23 @@ router.post('/settings/pairing', requireAuthApi, verifyCsrf, async (req, res) =>
 
 router.post('/settings/disconnect', requireAuthApi, verifyCsrf, async (req, res) => {
   await disconnect(req.session.userId);
+  res.json({ ok: true });
+});
+
+router.post('/api/settings/change-password', requireAuthApi, verifyCsrf, async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+  
+  if (!bcrypt.compareSync(oldPassword, user.password_hash)) {
+    return res.status(400).json({ error: 'Password lama salah' });
+  }
+  
+  const hash = bcrypt.hashSync(newPassword, parseInt(process.env.BCRYPT_COST || '10', 10));
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, user.id);
+  
+  // Sinkronisasi ke Sheet
+  await postToSheet({ action: 'change_password', username: user.username, newPassword });
+  
   res.json({ ok: true });
 });
 
