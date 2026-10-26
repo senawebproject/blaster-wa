@@ -115,7 +115,7 @@ function renderProgress(j) {
 }
 
 ['pause','resume','stop'].forEach(k => {
-  const el = document.getElementById(k + 'Btn');
+  const el = document.getElementById(k + 'Btn'); // <-- INI YANG DIPERBAIKI
   el?.addEventListener('click', async () => {
     if (!currentJobId) return;
     if (k === 'stop' && !confirm('Yakin stop job ini?')) return;
