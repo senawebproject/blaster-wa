@@ -8,6 +8,9 @@ const { enqueueJob } = require('../src/blastEngine');
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: parseInt(process.env.UPLOAD_MAX_BYTES || '5242880', 10) } });
 
+// Gunakan Memory Cache sementara, JANGAN simpan file besar ke session!
+const pendingUploads = new Map(); 
+
 router.get('/dashboard', requireAuth, (req, res) => {
   const templates = db.prepare('SELECT id, title, body FROM templates WHERE user_id = ? ORDER BY updated_at DESC').all(req.session.userId);
   const history = db.prepare('SELECT id, status, total, sent, failed, created_at FROM blast_jobs WHERE user_id = ? ORDER BY id DESC LIMIT 10').all(req.session.userId);
@@ -20,13 +23,15 @@ router.post('/api/upload', requireAuthApi, verifyCsrf, upload.single('file'), (r
   if (!name.endsWith('.xlsx') && !name.endsWith('.csv')) return res.status(400).json({ error: 'invalid_type' });
   try {
     const parsed = parseBuffer(req.file.buffer, name);
-    // store parsed data in session for the "start" step
-    req.session.pendingUpload = {
+    
+    // Simpan di cache memory server sementara
+    pendingUploads.set(req.session.userId, {
       rows: parsed.rows,
       phoneColumn: parsed.phoneColumn,
       headers: parsed.headers,
       summary: parsed.summary,
-    };
+    });
+
     res.json({
       phoneColumn: parsed.phoneColumn,
       headers: parsed.headers,
@@ -40,7 +45,8 @@ router.post('/api/upload', requireAuthApi, verifyCsrf, upload.single('file'), (r
 
 router.post('/api/blast/start', requireAuthApi, verifyCsrf, (req, res) => {
   const { templateBody, mode, scheduledAt } = req.body;
-  const pending = req.session.pendingUpload;
+  const pending = pendingUploads.get(req.session.userId);
+  
   if (!pending || !pending.rows) return res.status(400).json({ error: 'no_upload' });
   if (!templateBody) return res.status(400).json({ error: 'no_template' });
 
@@ -76,7 +82,9 @@ router.post('/api/blast/start', requireAuthApi, verifyCsrf, (req, res) => {
   });
 
   const jobId = tx();
-  delete req.session.pendingUpload;
+  
+  // Bersihkan cache setelah dipakai
+  pendingUploads.delete(req.session.userId);
 
   if (isImmediate) {
     db.prepare("UPDATE blast_jobs SET started_at = datetime('now') WHERE id = ?").run(jobId);
