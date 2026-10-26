@@ -1,6 +1,6 @@
 const express = require('express');
 const { requireAuth, requireAuthApi, verifyCsrf } = require('../src/middleware');
-const { requestPairing, disconnect, getState } = require('../src/waManager');
+const { requestPairing, disconnect, getState } = require('../src/wamanager');
 const { normalizePhone } = require('../src/normalizer');
 
 const router = express.Router();
