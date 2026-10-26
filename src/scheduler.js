@@ -1,6 +1,6 @@
 const db = require('../db');
-const { enqueueJob } = require('./blastEngine');
-const { getState } = require('./waManager');
+const { enqueueJob } = require('./blastengine');
+const { getState } = require('./wamanager');
 
 const POLL_MS = parseInt(process.env.SCHEDULER_POLL_MS || '30000', 10);
 const INSTANCE_ID = `inst-${process.pid}-${Date.now()}`;
