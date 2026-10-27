@@ -19,8 +19,12 @@
         <a class="topnav-link" href="/templates">Templates</a>
         <a class="topnav-link" href="/settings">Settings</a>
       </nav>
+      <div class="language-switch" role="group" aria-label="Choose language">
+        <button type="button" data-language-choice="id" aria-pressed="false">ID</button>
+        <button type="button" data-language-choice="en" aria-pressed="false">EN</button>
+      </div>
       <div class="account-area">
-        <span class="account-name"><%= username %></span>
+        <span class="account-name" data-no-translate><%= username %></span>
         <a href="/settings" id="waBadge" class="status-pill is-checking"><span class="status-dot"></span><span>Checking WhatsApp</span></a>
       </div>
     </div>
@@ -48,7 +52,7 @@
             <select id="templateSelect" class="field-control">
               <option value="">Choose a template…</option>
               <% templates.forEach(t => { %>
-                <option value="<%= t.id %>" data-body="<%= t.body.replace(/"/g,'&quot;') %>"><%= t.title %></option>
+                <option data-no-translate value="<%= t.id %>" data-body="<%= t.body.replace(/"/g,'&quot;') %>"><%= t.title %></option>
               <% }) %>
             </select>
           </div>
@@ -76,7 +80,7 @@
           <div id="mediaStatus" class="inline-status" role="status"></div>
           <div id="mediaSelected" class="media-selected hidden">
             <div id="mediaThumb" class="media-thumb"><span>FILE</span></div>
-            <div class="media-file-copy"><strong id="mediaName">—</strong><span id="mediaDetails">—</span></div>
+            <div class="media-file-copy"><strong id="mediaName" data-no-translate>—</strong><span id="mediaDetails" data-no-translate>—</span></div>
             <button type="button" id="removeMediaBtn" class="quiet-button" aria-label="Remove attachment">Remove</button>
           </div>
           <p class="helper-note">Images and videos appear with your caption. Other file types are sent as WhatsApp documents.</p>
@@ -157,6 +161,7 @@
   </main>
 
   <script>window.CSRF = "<%= csrfToken %>";</script>
+  <script src="/js/i18n.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

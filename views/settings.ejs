@@ -11,7 +11,11 @@
   <header class="topbar"><div class="topbar-inner">
     <a class="brand" href="/dashboard"><span class="brand-mark">b.</span><span class="brand-copy"><strong>BLASTER</strong><small>WHATSAPP CAMPAIGNS</small></span></a>
     <nav class="topnav" aria-label="Main navigation"><a class="topnav-link" href="/dashboard">Campaign studio</a><a class="topnav-link" href="/templates">Templates</a><a class="topnav-link active" href="/settings">Settings</a></nav>
-    <div class="account-area"><span class="account-name"><%= username %></span><span class="status-pill"><span class="status-dot"></span><span>Account</span></span></div>
+    <div class="language-switch" role="group" aria-label="Choose language">
+      <button type="button" data-language-choice="id" aria-pressed="false">ID</button>
+      <button type="button" data-language-choice="en" aria-pressed="false">EN</button>
+    </div>
+    <div class="account-area"><span class="account-name" data-no-translate><%= username %></span><span class="status-pill"><span class="status-dot"></span><span>Account</span></span></div>
   </div></header>
   <main class="page-shell legacy-page-shell">
     <section class="page-intro"><div><div class="eyebrow">WORKSPACE <span> / </span> PREFERENCES</div><h1>Settings<span>.</span></h1><p>Manage the connection and security for your workspace.</p></div></section>
@@ -34,12 +38,13 @@
       </div>
       <aside class="settings-side-column">
         <section class="panel disconnect-panel"><div class="section-number danger-number">!</div><h2>Disconnect WhatsApp</h2><p>Disconnect the linked WhatsApp session on this server. You will need to pair again before sending campaigns.</p><button id="disconnectBtn" type="button" class="stop-button full-button">Disconnect device</button></section>
-        <section class="panel account-panel"><div class="eyebrow">ACCOUNT</div><h2><%= username %></h2><p>This workspace is private to your signed-in account.</p><form method="POST" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="logout-button">Sign out <span aria-hidden="true">↗</span></button></form></section>
+        <section class="panel account-panel"><div class="eyebrow">ACCOUNT</div><h2 data-no-translate><%= username %></h2><p>This workspace is private to your signed-in account.</p><form method="POST" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit" class="logout-button">Sign out <span aria-hidden="true">↗</span></button></form></section>
       </aside>
     </div>
     <footer class="page-footer"><span>BLASTER <span class="footer-separator">/</span> SETTINGS</span><span>Keep your workspace secure.</span></footer>
   </main>
   <script>window.CSRF = "<%= csrfToken %>";</script>
+  <script src="/js/i18n.js"></script>
   <script src="/js/settings.js"></script>
 </body>
 </html>
