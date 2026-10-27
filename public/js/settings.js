@@ -137,7 +137,7 @@ if (pacingForm) {
   pacingForm.addEventListener('submit', async event => {
     event.preventDefault();
     const profile = document.querySelector('input[name="pacingProfile"]:checked')?.value;
-    if (!['recommended', 'careful'].includes(profile)) return;
+    if (!['very_fast', 'fast', 'quick', 'recommended', 'careful', 'slow', 'very_careful'].includes(profile)) return;
     savePacingBtn.disabled = true;
     if (pacingStatus) pacingStatus.textContent = 'Saving sending settings…';
     try {
