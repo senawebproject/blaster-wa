@@ -15,7 +15,7 @@ module.exports = (loginLimiter) => {
     const { username, password } = req.body;
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-      return res.status(401).render('login', { error: 'Username atau password salah.' });
+      return res.status(401).render('login', { error: 'Invalid username or password.' });
     }
     req.session.userId = user.id;
     req.session.username = user.username;
