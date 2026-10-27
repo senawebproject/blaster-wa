@@ -77,7 +77,16 @@ async function runJob(jobId) {
       return;
     }
 
-    const message = render(job.template_body, { ...r, nama: r.name_raw, name: r.name_raw });
+    // Semua kolom dari file upload jadi variabel template: {nama}, {kota}, {nama_toko}, dst
+    let extra = {};
+    try { extra = r.data_json ? JSON.parse(r.data_json) : {}; } catch {}
+    const message = render(job.template_body, {
+      ...extra,
+      nama: extra.nama || extra.Nama || extra.name || extra.Name || r.name_raw,
+      name: extra.name || extra.Name || extra.nama || extra.Nama || r.name_raw,
+      nomor: r.phone_raw,
+      phone: r.phone_normalized,
+    });
     attempts += 1;
 
     try {
