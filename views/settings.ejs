@@ -44,10 +44,22 @@
           <button id="btnChangePass" type="button" class="secondary-button settings-password-button">Save new password</button>
         </section>
         <section class="panel" aria-labelledby="pacingHeading">
-          <div class="panel-heading"><div class="section-number">04</div><div class="panel-heading-copy"><h2 id="pacingHeading">Sending pace</h2><p>Choose a conservative sending rhythm for new campaigns.</p></div></div>
+          <div class="panel-heading"><div class="section-number">04</div><div class="panel-heading-copy"><h2 id="pacingHeading">Sending pace</h2><p>Choose a sending rhythm for new campaigns. Faster options carry more restriction risk.</p></div></div>
           <p class="pacing-warning">Only send to people who agreed to receive your messages. Timing cannot guarantee an account will avoid restrictions.</p>
           <p class="helper-note pacing-helper-note">These settings apply to new campaigns only; existing campaigns are not changed.</p>
           <form id="sendPacingForm" class="pacing-options">
+            <label class="pacing-option">
+              <input type="radio" name="pacingProfile" value="very_fast" <%= pacingProfile === 'very_fast' ? 'checked' : '' %>>
+              <span class="pacing-option-copy"><strong>Ultra fast</strong><small>2–5 seconds between messages; pause 5–10 minutes after every 10 messages. Highest restriction risk.</small></span>
+            </label>
+            <label class="pacing-option">
+              <input type="radio" name="pacingProfile" value="fast" <%= pacingProfile === 'fast' ? 'checked' : '' %>>
+              <span class="pacing-option-copy"><strong>Fast</strong><small>5–10 seconds between messages; pause 5–10 minutes after every 10 messages.</small></span>
+            </label>
+            <label class="pacing-option">
+              <input type="radio" name="pacingProfile" value="quick" <%= pacingProfile === 'quick' ? 'checked' : '' %>>
+              <span class="pacing-option-copy"><strong>Quick</strong><small>10–15 seconds between messages; pause 3–5 minutes after every 15 messages.</small></span>
+            </label>
             <label class="pacing-option">
               <input type="radio" name="pacingProfile" value="recommended" <%= pacingProfile === 'recommended' ? 'checked' : '' %>>
               <span class="pacing-option-copy"><strong>Recommended <span class="pacing-recommended-tag">RECOMMENDED</span></strong><small>15–45 seconds between messages; pause 2–5 minutes after every 20 messages. This is the current default.</small></span>
@@ -55,6 +67,14 @@
             <label class="pacing-option">
               <input type="radio" name="pacingProfile" value="careful" <%= pacingProfile === 'careful' ? 'checked' : '' %>>
               <span class="pacing-option-copy"><strong>More cautious</strong><small>30–60 seconds between messages; pause 5–10 minutes after every 10 messages.</small></span>
+            </label>
+            <label class="pacing-option">
+              <input type="radio" name="pacingProfile" value="slow" <%= pacingProfile === 'slow' ? 'checked' : '' %>>
+              <span class="pacing-option-copy"><strong>Slow</strong><small>45–90 seconds between messages; pause 5–10 minutes after every 10 messages.</small></span>
+            </label>
+            <label class="pacing-option">
+              <input type="radio" name="pacingProfile" value="very_careful" <%= pacingProfile === 'very_careful' ? 'checked' : '' %>>
+              <span class="pacing-option-copy"><strong>Very cautious</strong><small>60–120 seconds between messages; pause 10–15 minutes after every 10 messages.</small></span>
             </label>
             <button id="savePacingBtn" type="submit" class="secondary-button settings-password-button">Save sending settings</button>
             <p id="pacingStatus" class="pacing-status" role="status" aria-live="polite"></p>
