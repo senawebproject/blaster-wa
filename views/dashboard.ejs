@@ -1,116 +1,162 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Blaster — WA Blaster</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  body { background:#0F1117; color:#F9FAFB; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
-  .card { background:#1A1D24; border-radius:1rem; }
-  button, input, select, textarea { font-size:16px; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campaign studio — Blaster</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="pb-24">
-  <header class="sticky top-0 z-10 bg-[#0F1117]/90 backdrop-blur border-b border-white/10">
-    <div class="max-w-md mx-auto flex items-center justify-between px-4 py-3">
-      <div>
-        <div class="text-sm text-gray-400">Login sebagai</div>
-        <div class="font-semibold"><%= username %></div>
+<body class="app-shell">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/dashboard" aria-label="Blaster dashboard">
+        <span class="brand-mark">b.</span>
+        <span class="brand-copy"><strong>BLASTER</strong><small>WHATSAPP CAMPAIGNS</small></span>
+      </a>
+      <nav class="topnav" aria-label="Main navigation">
+        <a class="topnav-link active" href="/dashboard">Campaign studio</a>
+        <a class="topnav-link" href="/templates">Templates</a>
+        <a class="topnav-link" href="/settings">Settings</a>
+      </nav>
+      <div class="account-area">
+        <span class="account-name"><%= username %></span>
+        <a href="/settings" id="waBadge" class="status-pill is-checking"><span class="status-dot"></span><span>Checking WhatsApp</span></a>
       </div>
-      <a href="/settings" class="text-sm px-3 py-2 rounded-lg bg-white/5" id="waBadge">⏳ Cek WA…</a>
     </div>
   </header>
 
-  <main class="max-w-md mx-auto px-4 py-4 space-y-4">
-
-    <section class="card p-4 space-y-3">
-      <h2 class="font-semibold">1. Pilih Template</h2>
-      <select id="templateSelect" class="w-full bg-[#0F1117] border border-white/10 rounded-xl px-3 py-3">
-        <option value="">— Pilih template —</option>
-        <% templates.forEach(t => { %>
-          <option value="<%= t.id %>" data-body="<%= t.body.replace(/"/g,'&quot;') %>"><%= t.title %></option>
-        <% }) %>
-      </select>
-      <textarea id="templateBody" rows="5" placeholder="Pesan akan muncul di sini, bisa edit…"
-        class="w-full bg-[#0F1117] border border-white/10 rounded-xl px-3 py-3"></textarea>
-      <div class="text-xs text-gray-400">Variabel: <code class="text-emerald-400">{nama}</code> dll.</div>
-    </section>
-
-    <section class="card p-4 space-y-3">
-      <h2 class="font-semibold">2. Upload Kontak (.xlsx / .csv)</h2>
-      <input type="file" id="fileInput" accept=".xlsx,.csv"
-        class="w-full text-sm file:mr-3 file:px-4 file:py-2 file:rounded-lg file:bg-[#10B981] file:text-black file:border-0">
-      <div id="uploadInfo" class="text-sm text-gray-400"></div>
-      <div id="previewWrap" class="hidden">
-        <div class="text-sm mt-2" id="previewSummary"></div>
-        <div class="overflow-x-auto mt-2">
-          <table class="w-full text-xs">
-            <thead id="previewHead" class="text-gray-400"></thead>
-            <tbody id="previewBody"></tbody>
-          </table>
-        </div>
+  <main class="page-shell">
+    <section class="page-intro">
+      <div>
+        <div class="eyebrow">WORKSPACE <span> / </span> CAMPAIGNS</div>
+        <h1>Campaign studio<span>.</span></h1>
+        <p>Compose a message, choose your audience, and send it with care.</p>
       </div>
+      <div class="intro-note"><span class="note-line"></span><span>Built for thoughtful outreach</span></div>
     </section>
 
-    <section class="card p-4 space-y-3">
-      <h2 class="font-semibold">3. Mode Pengiriman</h2>
-      <div class="flex gap-2">
-        <label class="flex-1 cursor-pointer">
-          <input type="radio" name="mode" value="immediate" checked class="peer sr-only">
-          <div class="peer-checked:bg-[#10B981] peer-checked:text-black text-center rounded-xl py-3 bg-white/5">Seketika</div>
-        </label>
-        <label class="flex-1 cursor-pointer">
-          <input type="radio" name="mode" value="scheduled" class="peer sr-only">
-          <div class="peer-checked:bg-[#10B981] peer-checked:text-black text-center rounded-xl py-3 bg-white/5">Jadwal</div>
-        </label>
+    <div class="workspace-grid">
+      <div class="main-column">
+        <section class="panel" aria-labelledby="messageHeading">
+          <div class="panel-heading">
+            <div class="section-number">01</div>
+            <div class="panel-heading-copy"><h2 id="messageHeading">Compose message</h2><p>Start from a saved template or write something new.</p></div>
+          </div>
+          <div class="field-block">
+            <label class="field-label" for="templateSelect">Saved template <span>OPTIONAL</span></label>
+            <select id="templateSelect" class="field-control">
+              <option value="">Choose a template…</option>
+              <% templates.forEach(t => { %>
+                <option value="<%= t.id %>" data-body="<%= t.body.replace(/"/g,'&quot;') %>"><%= t.title %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field-block message-field">
+            <div class="field-label-row"><label class="field-label" for="templateBody">Message</label><span id="charCount" class="character-count">0 characters</span></div>
+            <textarea id="templateBody" rows="6" class="field-control message-editor" placeholder="Write your message here…"></textarea>
+            <div class="editor-footer"><span>Personalize with <code>{nama}</code>, <code>{kota}</code>, and other contact columns.</span><a href="/templates">Manage templates <span aria-hidden="true">↗</span></a></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="mediaHeading">
+          <div class="panel-heading">
+            <div class="section-number">02</div>
+            <div class="panel-heading-copy"><h2 id="mediaHeading">Add an attachment</h2><p>Optional · Add a photo, video, PDF, or document to your message.</p></div>
+            <span class="optional-tag">OPTIONAL</span>
+          </div>
+          <input type="file" id="mediaInput" class="visually-hidden" accept="image/*,video/mp4,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.odt,.ods,.odp,.epub">
+          <label for="mediaInput" id="mediaDropzone" class="dropzone">
+            <span class="drop-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <span class="drop-copy"><strong>Choose a file to attach</strong><small>Images, video, audio, PDF and common documents · Up to 16 MB</small></span>
+            <span class="drop-action">Browse files</span>
+          </label>
+          <div id="mediaStatus" class="inline-status" role="status"></div>
+          <div id="mediaSelected" class="media-selected hidden">
+            <div id="mediaThumb" class="media-thumb"><span>FILE</span></div>
+            <div class="media-file-copy"><strong id="mediaName">—</strong><span id="mediaDetails">—</span></div>
+            <button type="button" id="removeMediaBtn" class="quiet-button" aria-label="Remove attachment">Remove</button>
+          </div>
+          <p class="helper-note">Images and videos appear with your caption. Other file types are sent as WhatsApp documents.</p>
+        </section>
+
+        <section class="panel" aria-labelledby="audienceHeading">
+          <div class="panel-heading">
+            <div class="section-number">03</div>
+            <div class="panel-heading-copy"><h2 id="audienceHeading">Choose your audience</h2><p>Import contacts from a spreadsheet. Phone numbers are checked before sending.</p></div>
+          </div>
+          <input type="file" id="fileInput" class="visually-hidden" accept=".xlsx,.csv">
+          <label for="fileInput" id="contactDropzone" class="dropzone contact-dropzone">
+            <span class="drop-icon sheet-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 8h8M8 12h8M8 16h3m2 0h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </span>
+            <span class="drop-copy"><strong>Upload your contact list</strong><small>CSV or Excel workbook · Include a phone number column</small></span>
+            <span class="drop-action">Choose list</span>
+          </label>
+          <div id="uploadInfo" class="inline-status" role="status"></div>
+          <div id="previewWrap" class="preview-wrap hidden">
+            <div class="preview-topline"><strong>Contact preview</strong><span id="previewSummary"></span></div>
+            <div class="table-scroll"><table class="contacts-table"><thead id="previewHead"></thead><tbody id="previewBody"></tbody></table></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="deliveryHeading">
+          <div class="panel-heading">
+            <div class="section-number">04</div>
+            <div class="panel-heading-copy"><h2 id="deliveryHeading">Delivery</h2><p>Send now or choose a time for this campaign.</p></div>
+          </div>
+          <div class="delivery-options">
+            <label class="delivery-choice"><input type="radio" name="mode" value="immediate" checked><span class="choice-radio"></span><span class="choice-copy"><strong>Send now</strong><small>Start once you launch the campaign.</small></span></label>
+            <label class="delivery-choice"><input type="radio" name="mode" value="scheduled"><span class="choice-radio"></span><span class="choice-copy"><strong>Schedule</strong><small>Queue the campaign for a later time.</small></span></label>
+          </div>
+          <div id="scheduleField" class="field-block schedule-field hidden"><label class="field-label" for="scheduledAt">Scheduled date and time</label><input type="datetime-local" id="scheduledAt" class="field-control"></div>
+        </section>
       </div>
-      <input type="datetime-local" id="scheduledAt" class="hidden w-full bg-[#0F1117] border border-white/10 rounded-xl px-3 py-3">
-    </section>
 
-    <button id="startBtn" class="w-full bg-[#10B981] text-black font-semibold rounded-xl py-4 text-lg">
-      🚀 Blast
-    </button>
+      <aside class="side-column">
+        <section class="preview-panel">
+          <div class="preview-panel-head"><div><div class="eyebrow">LIVE PREVIEW</div><h2>Message preview</h2></div><span class="preview-indicator"><span></span> DRAFT</span></div>
+          <div class="chat-stage">
+            <div class="chat-caption">WHATSAPP MESSAGE</div>
+            <div class="chat-bubble"><p id="messagePreview">Your message will appear here as you write.</p><div id="previewMedia" class="preview-media hidden"></div><div class="bubble-meta"><span id="previewTime">now</span><span aria-label="Message sent">✓✓</span></div></div>
+            <div class="preview-footnote">Preview shows the message structure. Contact variables are filled for each recipient.</div>
+          </div>
+          <div class="summary-list">
+            <div><span>Audience</span><strong id="audienceSummary">No list uploaded</strong></div>
+            <div><span>Attachment</span><strong id="attachmentSummary">None</strong></div>
+            <div><span>Delivery</span><strong id="deliverySummary">Send now</strong></div>
+          </div>
+          <button id="startBtn" class="launch-button" type="button"><span>Launch campaign</span><span aria-hidden="true">↗</span></button>
+          <p class="launch-note">Only message people who have agreed to receive your updates.</p>
+        </section>
 
-    <section id="progressCard" class="card p-4 space-y-3 hidden">
-      <h2 class="font-semibold">Progress</h2>
-      <div class="text-sm text-gray-400" id="progressText">—</div>
-      <div class="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-        <div id="progressBar" class="h-full bg-[#10B981] transition-all" style="width:0%"></div>
-      </div>
-      <div class="flex gap-2">
-        <button id="pauseBtn" class="flex-1 bg-white/10 rounded-xl py-3">Pause</button>
-        <button id="resumeBtn" class="flex-1 bg-white/10 rounded-xl py-3">Resume</button>
-        <button id="stopBtn" class="flex-1 bg-red-500/80 rounded-xl py-3">Stop</button>
-      </div>
-      <a id="failedLink" href="#" class="hidden text-center block text-sm text-emerald-400 underline">⬇ Unduh log gagal (CSV)</a>
-    </section>
+        <section id="progressCard" class="panel progress-panel hidden">
+          <div class="panel-heading compact-heading"><div class="section-number progress-mark">↗</div><div class="panel-heading-copy"><h2>Campaign progress</h2><p id="progressText">Waiting to start…</p></div></div>
+          <div class="progress-track"><div id="progressBar" class="progress-fill" style="width:0%"></div></div>
+          <div class="progress-controls"><button id="pauseBtn" type="button" class="secondary-button">Pause</button><button id="resumeBtn" type="button" class="secondary-button">Resume</button><button id="stopBtn" type="button" class="stop-button">Stop</button></div>
+          <a id="failedLink" href="#" class="failed-link hidden">Download failed contacts CSV ↗</a>
+        </section>
 
-    <section class="card p-4 space-y-2">
-      <h2 class="font-semibold mb-2">Riwayat</h2>
-      <% if (!history.length) { %>
-        <div class="text-sm text-gray-500">Belum ada blast.</div>
-      <% } %>
-      <% history.forEach(h => { %>
-        <div class="flex justify-between text-sm py-2 border-b border-white/5">
-          <span>#<%= h.id %> · <%= h.status %></span>
-          <span class="text-gray-400"><%= h.sent %>/<%= h.total %></span>
-        </div>
-      <% }) %>
-    </section>
+        <section class="panel history-panel">
+          <div class="panel-heading compact-heading"><div class="panel-heading-copy"><h2>Recent campaigns</h2><p>Your latest activity.</p></div><span class="history-count"><%= history.length %></span></div>
+          <% if (!history.length) { %>
+            <div class="empty-history"><span class="empty-history-mark">—</span><p>No campaigns yet.</p><small>Your campaign history will appear here.</small></div>
+          <% } else { %>
+            <div class="history-list">
+              <% history.forEach(h => { %>
+                <div class="history-row"><span class="history-status status-<%= h.status %>"></span><div class="history-copy"><strong>Campaign #<%= h.id %></strong><small><%= h.status %> · <%= h.mode === 'scheduled' ? 'Scheduled' : 'Immediate' %></small></div><div class="history-result"><strong><%= h.sent %>/<%= h.total %></strong><small>sent</small></div></div>
+              <% }) %>
+            </div>
+          <% } %>
+        </section>
+      </aside>
+    </div>
+    <footer class="page-footer"><span>BLASTER <span class="footer-separator">/</span> CAMPAIGN STUDIO</span><span>Made for deliberate communication.</span></footer>
   </main>
 
-  <nav class="fixed bottom-0 inset-x-0 bg-[#0F1117]/95 backdrop-blur border-t border-white/10">
-    <div class="max-w-md mx-auto grid grid-cols-3 text-center text-xs">
-      <a href="/dashboard" class="py-3 text-[#10B981] font-semibold">Blaster</a>
-      <a href="/templates" class="py-3 text-gray-400">Template</a>
-      <a href="/settings" class="py-3 text-gray-400">Settings</a>
-    </div>
-  </nav>
-
-<script>
-  window.CSRF = "<%= csrfToken %>";
-</script>
-<script src="/js/app.js"></script>
+  <script>window.CSRF = "<%= csrfToken %>";</script>
+  <script src="/js/app.js"></script>
 </body>
 </html>
