@@ -69,6 +69,21 @@ CREATE TABLE IF NOT EXISTS blast_recipients (
 );
 `);
 
+// ==========================================
+// MIGRASI KOLOM (aman dijalankan berkali-kali)
+// ==========================================
+function addColumnIfMissing(table, column, type) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!cols.some(c => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    console.log(`[DB Setup] Kolom ${table}.${column} ditambahkan`);
+  }
+}
+// semua kolom dari file upload (JSON) per penerima, buat variabel template
+addColumnIfMissing('blast_recipients', 'data_json', 'TEXT');
+// engine menulis last_error ke blast_jobs, tapi kolomnya sebelumnya belum ada
+addColumnIfMissing('blast_jobs', 'last_error', 'TEXT');
+
 async function autoSync() {
   try {
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
