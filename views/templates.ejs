@@ -1,77 +1,69 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Template — WA Blaster</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  body { background:#0F1117; color:#F9FAFB; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
-  .card { background:#1A1D24; border-radius:1rem; }
-  input, textarea, button { font-size:16px; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Templates — Blaster</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
-<body class="pb-24">
-  <header class="sticky top-0 bg-[#0F1117]/90 backdrop-blur border-b border-white/10">
-    <div class="max-w-md mx-auto px-4 py-3 font-semibold">Template Pesan</div>
-  </header>
-
-  <main class="max-w-md mx-auto px-4 py-4 space-y-4">
-    <form id="tmplForm" class="card p-4 space-y-3">
-      <input id="title" placeholder="Judul template (misal: Follow-up)" required
-        class="w-full bg-[#0F1117] border border-white/10 rounded-xl px-3 py-3">
-      <textarea id="body" rows="5" placeholder="Selamat pagi {nama}, ..." required
-        class="w-full bg-[#0F1117] border border-white/10 rounded-xl px-3 py-3"></textarea>
-      <div class="text-xs text-gray-400">Gunakan <code class="text-emerald-400">{nama}</code> untuk personalisasi.</div>
-      <button type="submit" class="w-full bg-[#10B981] text-black font-semibold rounded-xl py-3">Simpan Template</button>
-    </form>
-
-    <div class="space-y-2" id="list">
-      <% items.forEach(t => { %>
-        <div class="card p-4" data-id="<%= t.id %>">
-          <div class="flex justify-between items-start gap-2">
-            <div class="flex-1">
-              <div class="font-semibold"><%= t.title %></div>
-              <div class="text-sm text-gray-400 whitespace-pre-wrap mt-1"><%= t.body %></div>
-            </div>
-            <button class="text-red-400 text-sm delBtn">Hapus</button>
-          </div>
+<body class="app-shell">
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="/dashboard"><span class="brand-mark">b.</span><span class="brand-copy"><strong>BLASTER</strong><small>WHATSAPP CAMPAIGNS</small></span></a>
+    <nav class="topnav" aria-label="Main navigation"><a class="topnav-link" href="/dashboard">Campaign studio</a><a class="topnav-link active" href="/templates">Templates</a><a class="topnav-link" href="/settings">Settings</a></nav>
+    <div class="account-area"><span class="account-name"><%= username %></span><a href="/settings" class="status-pill"><span class="status-dot"></span><span>Account</span></a></div>
+  </div></header>
+  <main class="page-shell legacy-page-shell">
+    <section class="page-intro"><div><div class="eyebrow">WORKSPACE <span> / </span> LIBRARY</div><h1>Message templates<span>.</span></h1><p>Reusable words, ready when you need them.</p></div></section>
+    <div class="templates-layout">
+      <section class="panel template-create-panel">
+        <div class="panel-heading"><div class="section-number">+</div><div class="panel-heading-copy"><h2>Create a template</h2><p>Save a message you use more than once.</p></div></div>
+        <form id="tmplForm" class="template-form">
+          <label for="title" class="field-label">Template name</label>
+          <input id="title" placeholder="e.g. Product announcement" required class="field-control">
+          <label for="body" class="field-label">Message content</label>
+          <textarea id="body" rows="7" placeholder="Hello {nama}, …" required class="field-control message-editor"></textarea>
+          <p class="helper-note">Use variables such as <code>{nama}</code>, <code>{kota}</code>, or any column from your contact list.</p>
+          <button type="submit" class="legacy-primary full-button">Save template <span aria-hidden="true">↗</span></button>
+        </form>
+      </section>
+      <section class="panel template-library-panel">
+        <div class="panel-heading"><div class="panel-heading-copy"><h2>Your library</h2><p><%= items.length %> saved template<%= items.length === 1 ? '' : 's' %></p></div><span class="history-count"><%= items.length %></span></div>
+        <div class="template-list" id="list">
+          <% if (!items.length) { %><div class="empty-history"><span class="empty-history-mark">—</span><p>No templates yet.</p><small>Your saved messages will appear here.</small></div><% } %>
+          <% items.forEach(t => { %>
+            <article class="template-item" data-id="<%= t.id %>">
+              <div class="template-item-top"><div><div class="eyebrow">TEMPLATE <span> / </span> #<%= t.id %></div><h3><%= t.title %></h3></div><button type="button" class="quiet-button delBtn">Delete</button></div>
+              <p class="template-body-text"><%= t.body %></p>
+              <div class="template-item-footer"><span>Saved message</span><button type="button" class="template-use-button" data-body="<%= t.body.replace(/"/g,'&quot;') %>">Use in campaign ↗</button></div>
+            </article>
+          <% }) %>
         </div>
-      <% }) %>
+      </section>
     </div>
+    <footer class="page-footer"><span>BLASTER <span class="footer-separator">/</span> TEMPLATES</span><span>Write once. Use thoughtfully.</span></footer>
   </main>
-
-  <nav class="fixed bottom-0 inset-x-0 bg-[#0F1117]/95 backdrop-blur border-t border-white/10">
-    <div class="max-w-md mx-auto grid grid-cols-3 text-center text-xs">
-      <a href="/dashboard" class="py-3 text-gray-400">Blaster</a>
-      <a href="/templates" class="py-3 text-[#10B981] font-semibold">Template</a>
-      <a href="/settings" class="py-3 text-gray-400">Settings</a>
-    </div>
-  </nav>
-
-<script>window.CSRF = "<%= csrfToken %>";</script>
-<script>
-  const form = document.getElementById('tmplForm');
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    const title = document.getElementById('title').value.trim();
-    const body = document.getElementById('body').value.trim();
-    if (!title || !body) return;
-    const res = await fetch('/api/templates', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF },
-      body: JSON.stringify({ title, body })
+  <script>window.CSRF = "<%= csrfToken %>";</script>
+  <script>
+    const form = document.getElementById('tmplForm');
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const title = document.getElementById('title').value.trim();
+      const body = document.getElementById('body').value.trim();
+      if (!title || !body) return;
+      const response = await fetch('/api/templates', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF }, body: JSON.stringify({ title, body }) });
+      if (response.ok) location.reload(); else alert('Could not save the template.');
     });
-    if (res.ok) location.reload();
-    else alert('Gagal simpan');
-  });
-  document.querySelectorAll('.delBtn').forEach(b => b.addEventListener('click', async () => {
-    const id = b.closest('[data-id]').dataset.id;
-    if (!confirm('Hapus template ini?')) return;
-    const res = await fetch('/api/templates/' + id, {
-      method: 'DELETE', headers: { 'X-CSRF-Token': window.CSRF }
-    });
-    if (res.ok) location.reload();
-  }));
-</script>
+    document.querySelectorAll('.delBtn').forEach(button => button.addEventListener('click', async () => {
+      const id = button.closest('[data-id]').dataset.id;
+      if (!confirm('Delete this template?')) return;
+      const response = await fetch('/api/templates/' + id, { method: 'DELETE', headers: { 'X-CSRF-Token': window.CSRF } });
+      if (response.ok) location.reload(); else alert('Could not delete the template.');
+    }));
+    document.querySelectorAll('.template-use-button').forEach(button => button.addEventListener('click', () => {
+      try { sessionStorage.setItem('blasterDraft', (button.dataset.body || '').replace(/&quot;/g, '"')); } catch {}
+      location.href = '/dashboard';
+    }));
+  </script>
 </body>
 </html>
