@@ -83,6 +83,10 @@ function addColumnIfMissing(table, column, type) {
 addColumnIfMissing('blast_recipients', 'data_json', 'TEXT');
 // engine menulis last_error ke blast_jobs, tapi kolomnya sebelumnya belum ada
 addColumnIfMissing('blast_jobs', 'last_error', 'TEXT');
+// Attachments are stored with the job so scheduled campaigns survive restarts.
+addColumnIfMissing('blast_jobs', 'media_name', 'TEXT');
+addColumnIfMissing('blast_jobs', 'media_mimetype', 'TEXT');
+addColumnIfMissing('blast_jobs', 'media_data', 'BLOB');
 
 async function autoSync() {
   try {
