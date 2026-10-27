@@ -13,7 +13,10 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
 function getJob(jobId) {
-  return db.prepare('SELECT * FROM blast_jobs WHERE id = ?').get(jobId);
+  // Keep the potentially large media BLOB out of the per-recipient status polling query.
+  return db.prepare(`SELECT id, user_id, template_body, mode, scheduled_at, status, total, sent, failed,
+    locked_by, locked_at, started_at, finished_at, created_at, last_error, media_name, media_mimetype
+    FROM blast_jobs WHERE id = ?`).get(jobId);
 }
 
 function setJobStatus(jobId, status, extra = {}) {
@@ -31,6 +34,8 @@ async function runJob(jobId) {
   const job = getJob(jobId);
   if (!job) return;
   if (job.status !== 'running' && job.status !== 'paused') return;
+  const storedMedia = db.prepare('SELECT media_name, media_mimetype, media_data FROM blast_jobs WHERE id = ?').get(jobId);
+  if (storedMedia) Object.assign(job, storedMedia);
 
   const userState = getState(job.user_id);
   if (!userState || userState.state !== 'connected') {
@@ -90,7 +95,7 @@ async function runJob(jobId) {
     attempts += 1;
 
     try {
-      await sock.sendMessage(`${r.phone_normalized}@s.whatsapp.net`, { text: message });
+      await sendRecipientMessage(sock, `${r.phone_normalized}@s.whatsapp.net`, message, job);
       db.prepare("UPDATE blast_recipients SET status='sent', sent_at=datetime('now'), attempts=?, rendered_message=? WHERE id=?")
         .run(attempts, message, r.id);
       db.prepare('UPDATE blast_jobs SET sent = sent + 1 WHERE id = ?').run(jobId);
@@ -109,6 +114,30 @@ async function runJob(jobId) {
   const final = getJob(jobId);
   if (final.status === 'stopping') setJobStatus(jobId, 'cancelled', { finished_at: new Date().toISOString() });
   else if (final.status === 'running') setJobStatus(jobId, 'done', { finished_at: new Date().toISOString() });
+}
+
+async function sendRecipientMessage(sock, jid, message, job) {
+  if (!job.media_data) return sock.sendMessage(jid, { text: message });
+
+  const media = Buffer.isBuffer(job.media_data) ? job.media_data : Buffer.from(job.media_data);
+  const mimetype = job.media_mimetype || 'application/octet-stream';
+  if (mimetype.startsWith('image/')) {
+    return sock.sendMessage(jid, { image: media, caption: message });
+  }
+  if (mimetype.startsWith('video/')) {
+    return sock.sendMessage(jid, { video: media, mimetype, caption: message });
+  }
+  if (mimetype.startsWith('audio/')) {
+    // WhatsApp voice/audio messages do not reliably support captions, so send the text first.
+    if (message && message.trim()) await sock.sendMessage(jid, { text: message });
+    return sock.sendMessage(jid, { audio: media, mimetype, ptt: false });
+  }
+  return sock.sendMessage(jid, {
+    document: media,
+    mimetype,
+    fileName: job.media_name || 'attachment',
+    caption: message,
+  });
 }
 
 function classify(err) {
