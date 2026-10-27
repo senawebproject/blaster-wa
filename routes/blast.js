@@ -5,6 +5,7 @@ const db = require('../db');
 const { requireAuth, requireAuthApi, verifyCsrf } = require('../src/middleware');
 const { parseBuffer } = require('../src/uploadparser');
 const { enqueueJob } = require('../src/blastengine');
+const { PACING_PROFILES, DEFAULT_PACING_PROFILE, isPacingProfile } = require('../src/pacingprofiles');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: parseInt(process.env.UPLOAD_MAX_BYTES || '5242880', 10) } });
@@ -130,11 +131,11 @@ router.post('/api/blast/start', requireAuthApi, verifyCsrf, (req, res) => {
 
   const media = pendingMedia.get(req.session.userId) || null;
   const savedPreference = db.prepare('SELECT profile FROM user_send_preferences WHERE user_id = ?').get(sessionId);
-  const pacingProfile = savedPreference?.profile === 'careful' ? 'careful' : 'recommended';
-  // Recommended preserves the existing defaults. The cautious profile only slows campaigns further.
-  const pacing = pacingProfile === 'careful'
-    ? { delayMin: 30000, delayMax: 60000, batchSize: 10, pauseMin: 300000, pauseMax: 600000 }
-    : { delayMin: 15000, delayMax: 45000, batchSize: 20, pauseMin: 120000, pauseMax: 300000 };
+  const pacingProfile = isPacingProfile(savedPreference?.profile)
+    ? savedPreference.profile
+    : DEFAULT_PACING_PROFILE;
+  // Copy the selected profile into the job so future preference changes do not affect it.
+  const pacing = PACING_PROFILES[pacingProfile];
   const insertJob = db.prepare(`
     INSERT INTO blast_jobs (
       user_id, template_body, mode, scheduled_at, status, total,

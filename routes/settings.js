@@ -5,6 +5,7 @@ const { requireAuth, requireAuthApi, verifyCsrf } = require('../src/middleware')
 const { requestPairing, disconnect, getState } = require('../src/wamanager');
 const { normalizePhone } = require('../src/normalizer');
 const { postToSheet } = require('../src/syncservice');
+const { DEFAULT_PACING_PROFILE, isPacingProfile } = require('../src/pacingprofiles');
 
 const router = express.Router();
 
@@ -15,19 +16,19 @@ router.get('/settings', requireAuth, (req, res) => {
   res.render('settings', {
     session,
     username: req.session.username,
-    pacingProfile: preference?.profile || 'recommended'
+    pacingProfile: isPacingProfile(preference?.profile) ? preference.profile : DEFAULT_PACING_PROFILE
   });
 });
 
 // Pacing profile is per-user. A profile is copied onto each new job at launch time.
 router.get('/api/settings/send-pacing', requireAuthApi, (req, res) => {
   const preference = db.prepare('SELECT profile FROM user_send_preferences WHERE user_id = ?').get(req.session.userId);
-  res.json({ profile: preference?.profile || 'recommended' });
+  res.json({ profile: isPacingProfile(preference?.profile) ? preference.profile : DEFAULT_PACING_PROFILE });
 });
 
 router.post('/api/settings/send-pacing', requireAuthApi, verifyCsrf, (req, res) => {
   const profile = req.body?.profile;
-  if (!['recommended', 'careful'].includes(profile)) {
+  if (!isPacingProfile(profile)) {
     return res.status(400).json({ error: 'invalid_pacing_profile' });
   }
 
