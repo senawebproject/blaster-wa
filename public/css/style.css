@@ -419,3 +419,18 @@ select.field-control { cursor: pointer; }
   .account-area { margin-left: auto; }
   .login-language-switch { order: 0; }
 }
+
+/* Per-user campaign pacing controls */
+.pacing-warning { margin: 14px 0 0; padding: 11px 12px; border: 1px solid #4a4634; border-radius: 9px; background: rgba(215,195,140,.045); color: #c9bc96; font-size: 10px; line-height: 1.7; }
+.pacing-options { display: grid; gap: 10px; margin-top: 14px; }
+.pacing-helper-note { margin: 9px 0 0; }
+.pacing-option { display: grid; grid-template-columns: 16px minmax(0,1fr); align-items: start; gap: 11px; padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: #141713; cursor: pointer; transition: border-color .18s ease, background .18s ease; }
+.pacing-option:has(input:checked) { border-color: #72815f; background: rgba(197,215,173,.045); }
+.pacing-option input { width: 14px; height: 14px; margin: 3px 0 0; accent-color: var(--accent); }
+.pacing-option-copy { display: grid; gap: 6px; min-width: 0; }
+.pacing-option-copy strong { color: var(--text); font-size: 11px; font-weight: 650; }
+.pacing-option-copy small { color: var(--muted); font-size: 10px; line-height: 1.7; }
+.pacing-recommended-tag { display: inline-block; margin-left: 6px; border: 1px solid #46513b; border-radius: 99px; padding: 3px 6px; color: var(--accent); font-size: 7px; font-weight: 800; letter-spacing: .08em; vertical-align: 1px; }
+.pacing-status { min-height: 15px; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
+#savePacingBtn:disabled { opacity: .55; cursor: wait; }
+
