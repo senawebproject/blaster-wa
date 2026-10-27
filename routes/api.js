@@ -5,7 +5,7 @@ const { requireAuthApi } = require('../src/middleware');
 const router = express.Router();
 
 router.get('/api/blast/:id/status', requireAuthApi, (req, res) => {
-  const job = db.prepare('SELECT * FROM blast_jobs WHERE id = ? AND user_id = ?')
+  const job = db.prepare('SELECT id, user_id, status, mode, total, sent, failed, started_at, finished_at FROM blast_jobs WHERE id = ? AND user_id = ?')
     .get(req.params.id, req.session.userId);
   if (!job) return res.status(404).json({ error: 'not_found' });
 
@@ -38,7 +38,7 @@ router.get('/api/blast/:id/status', requireAuthApi, (req, res) => {
 });
 
 router.get('/api/blast/:id/failed.csv', requireAuthApi, (req, res) => {
-  const job = db.prepare('SELECT * FROM blast_jobs WHERE id = ? AND user_id = ?')
+  const job = db.prepare('SELECT id, user_id FROM blast_jobs WHERE id = ? AND user_id = ?')
     .get(req.params.id, req.session.userId);
   if (!job) return res.status(404).send('not found');
 
