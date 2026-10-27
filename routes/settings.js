@@ -11,7 +11,33 @@ const router = express.Router();
 router.get('/settings', requireAuth, (req, res) => {
   // Pastikan session gak undefined biar EJS gak error
   const session = getState(req.session.userId) || {};
-  res.render('settings', { session, username: req.session.username });
+  const preference = db.prepare('SELECT profile FROM user_send_preferences WHERE user_id = ?').get(req.session.userId);
+  res.render('settings', {
+    session,
+    username: req.session.username,
+    pacingProfile: preference?.profile || 'recommended'
+  });
+});
+
+// Pacing profile is per-user. A profile is copied onto each new job at launch time.
+router.get('/api/settings/send-pacing', requireAuthApi, (req, res) => {
+  const preference = db.prepare('SELECT profile FROM user_send_preferences WHERE user_id = ?').get(req.session.userId);
+  res.json({ profile: preference?.profile || 'recommended' });
+});
+
+router.post('/api/settings/send-pacing', requireAuthApi, verifyCsrf, (req, res) => {
+  const profile = req.body?.profile;
+  if (!['recommended', 'careful'].includes(profile)) {
+    return res.status(400).json({ error: 'invalid_pacing_profile' });
+  }
+
+  db.prepare(`
+    INSERT INTO user_send_preferences (user_id, profile, updated_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(user_id) DO UPDATE SET profile = excluded.profile, updated_at = datetime('now')
+  `).run(req.session.userId, profile);
+
+  res.json({ ok: true, profile });
 });
 
 router.get('/api/session/status', requireAuthApi, (req, res) => {

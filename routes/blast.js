@@ -129,9 +129,18 @@ router.post('/api/blast/start', requireAuthApi, verifyCsrf, (req, res) => {
   const scheduledIso = isImmediate ? null : parsedScheduledAt.toISOString();
 
   const media = pendingMedia.get(req.session.userId) || null;
+  const savedPreference = db.prepare('SELECT profile FROM user_send_preferences WHERE user_id = ?').get(sessionId);
+  const pacingProfile = savedPreference?.profile === 'careful' ? 'careful' : 'recommended';
+  // Recommended preserves the existing defaults. The cautious profile only slows campaigns further.
+  const pacing = pacingProfile === 'careful'
+    ? { delayMin: 30000, delayMax: 60000, batchSize: 10, pauseMin: 300000, pauseMax: 600000 }
+    : { delayMin: 15000, delayMax: 45000, batchSize: 20, pauseMin: 120000, pauseMax: 300000 };
   const insertJob = db.prepare(`
-    INSERT INTO blast_jobs (user_id, template_body, mode, scheduled_at, status, total, media_name, media_mimetype, media_data)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO blast_jobs (
+      user_id, template_body, mode, scheduled_at, status, total,
+      media_name, media_mimetype, media_data,
+      send_delay_min_ms, send_delay_max_ms, batch_size, batch_pause_min_ms, batch_pause_max_ms
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertRecipient = db.prepare(`
     INSERT INTO blast_recipients (job_id, name_raw, phone_raw, phone_normalized, is_valid, status, data_json)
@@ -144,7 +153,8 @@ router.post('/api/blast/start', requireAuthApi, verifyCsrf, (req, res) => {
       sessionId, templateBody,
       isImmediate ? 'immediate' : 'scheduled',
       scheduledIso, jobStatus, validRows.length,
-      media?.name || null, media?.mimetype || null, media?.buffer || null
+      media?.name || null, media?.mimetype || null, media?.buffer || null,
+      pacing.delayMin, pacing.delayMax, pacing.batchSize, pacing.pauseMin, pacing.pauseMax
     );
     for (const r of validRows) {
       insertRecipient.run(
