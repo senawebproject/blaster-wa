@@ -187,7 +187,20 @@
     'New password': 'Kata sandi baru',
     'ok': 'valid',
     'invalid': 'tidak valid',
-    'duplicate': 'duplikat'
+    'duplicate': 'duplikat',
+    'Sending pace': 'Ritme pengiriman',
+    'Choose a conservative sending rhythm for new campaigns.': 'Pilih ritme pengiriman yang lebih hati-hati untuk kampanye baru.',
+    'Only send to people who agreed to receive your messages. Timing cannot guarantee an account will avoid restrictions.': 'Kirim hanya kepada orang yang setuju menerima pesan Anda. Pengaturan jeda tidak menjamin akun bebas pembatasan.',
+    'These settings apply to new campaigns only; existing campaigns are not changed.': 'Pengaturan ini hanya berlaku untuk kampanye baru; kampanye yang sudah ada tidak diubah.',
+    'Recommended': 'Rekomendasi',
+    'RECOMMENDED': 'DISARANKAN',
+    '15–45 seconds between messages; pause 2–5 minutes after every 20 messages. This is the current default.': 'Jeda 15–45 detik antar pesan; istirahat 2–5 menit setiap 20 pesan. Ini pengaturan bawaan saat ini.',
+    'More cautious': 'Lebih hati-hati',
+    '30–60 seconds between messages; pause 5–10 minutes after every 10 messages.': 'Jeda 30–60 detik antar pesan; istirahat 5–10 menit setiap 10 pesan.',
+    'Save sending settings': 'Simpan pengaturan pengiriman',
+    'Saving sending settings…': 'Menyimpan pengaturan pengiriman…',
+    'Sending settings saved. New campaigns will use this pace.': 'Pengaturan tersimpan. Kampanye baru akan menggunakan ritme ini.',
+    'Could not save sending settings.': 'Pengaturan pengiriman tidak dapat disimpan.'
   };
 
   const patterns = [
@@ -226,7 +239,8 @@
     [/^Pairing failed: (.+)$/, (_, error) => `Penautan gagal: ${error}`],
     [/^Failed: (.+)$/, (_, error) => `Gagal: ${error}`],
     [/^Time remaining: (\d+) seconds$/, (_, seconds) => `Sisa waktu: ${seconds} detik`],
-    [/^Failed: (.+) — generate a new code$/, (_, error) => `Gagal: ${error} — buat kode baru`]
+    [/^Failed: (.+) — generate a new code$/, (_, error) => `Gagal: ${error} — buat kode baru`],
+    [/^Could not save sending settings: (.+)$/, (_, error) => `Pengaturan pengiriman tidak dapat disimpan: ${error}`]
   ];
 
   let language = 'en';

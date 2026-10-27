@@ -127,3 +127,33 @@ $('#btnChangePass')?.addEventListener('click', async () => {
 
 refresh();
 setInterval(refresh, 2000);
+
+// Save per-user pacing profile for campaigns created from now on.
+const pacingForm = $('#sendPacingForm');
+const pacingStatus = $('#pacingStatus');
+const savePacingBtn = $('#savePacingBtn');
+if (pacingForm) {
+  // Keep these source strings in English; i18n.js translates them according to the active language.
+  pacingForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const profile = document.querySelector('input[name="pacingProfile"]:checked')?.value;
+    if (!['recommended', 'careful'].includes(profile)) return;
+    savePacingBtn.disabled = true;
+    if (pacingStatus) pacingStatus.textContent = 'Saving sending settings…';
+    try {
+      const response = await fetch('/api/settings/send-pacing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF },
+        body: JSON.stringify({ profile })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not save sending settings.');
+      if (pacingStatus) pacingStatus.textContent = 'Sending settings saved. New campaigns will use this pace.';
+    } catch (error) {
+      if (pacingStatus) pacingStatus.textContent = `Could not save sending settings: ${error.message}`;
+    } finally {
+      savePacingBtn.disabled = false;
+    }
+  });
+}
+
