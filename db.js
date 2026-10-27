@@ -67,6 +67,11 @@ CREATE TABLE IF NOT EXISTS blast_recipients (
   is_valid INTEGER NOT NULL DEFAULT 1, status TEXT NOT NULL DEFAULT 'pending',
   error_reason TEXT, rendered_message TEXT, sent_at TEXT, attempts INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS user_send_preferences (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  profile TEXT NOT NULL DEFAULT 'recommended' CHECK (profile IN ('recommended','careful')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 
 // ==========================================
@@ -87,6 +92,12 @@ addColumnIfMissing('blast_jobs', 'last_error', 'TEXT');
 addColumnIfMissing('blast_jobs', 'media_name', 'TEXT');
 addColumnIfMissing('blast_jobs', 'media_mimetype', 'TEXT');
 addColumnIfMissing('blast_jobs', 'media_data', 'BLOB');
+// Snapshot the selected pacing profile per job so scheduled jobs keep their chosen pacing.
+addColumnIfMissing('blast_jobs', 'send_delay_min_ms', 'INTEGER');
+addColumnIfMissing('blast_jobs', 'send_delay_max_ms', 'INTEGER');
+addColumnIfMissing('blast_jobs', 'batch_size', 'INTEGER');
+addColumnIfMissing('blast_jobs', 'batch_pause_min_ms', 'INTEGER');
+addColumnIfMissing('blast_jobs', 'batch_pause_max_ms', 'INTEGER');
 
 async function autoSync() {
   try {
