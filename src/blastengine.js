@@ -15,7 +15,8 @@ function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + m
 function getJob(jobId) {
   // Keep the potentially large media BLOB out of the per-recipient status polling query.
   return db.prepare(`SELECT id, user_id, template_body, mode, scheduled_at, status, total, sent, failed,
-    locked_by, locked_at, started_at, finished_at, created_at, last_error, media_name, media_mimetype
+    locked_by, locked_at, started_at, finished_at, created_at, last_error, media_name, media_mimetype,
+    send_delay_min_ms, send_delay_max_ms, batch_size, batch_pause_min_ms, batch_pause_max_ms
     FROM blast_jobs WHERE id = ?`).get(jobId);
 }
 
@@ -52,6 +53,14 @@ async function runJob(jobId) {
   const recipients = db.prepare(
     "SELECT * FROM blast_recipients WHERE job_id = ? AND status = 'pending' AND is_valid = 1 ORDER BY id ASC"
   ).all(jobId);
+
+  // Do not allow a campaign to run faster than these conservative minimums,
+  // even if old jobs or environment variables contain smaller values.
+  const delayMin = Math.max(15000, Number(job.send_delay_min_ms) || DELAY_MIN);
+  const delayMax = Math.max(delayMin, Number(job.send_delay_max_ms) || DELAY_MAX);
+  const batchSize = Math.max(5, Math.min(100, Number(job.batch_size) || BATCH_SIZE));
+  const batchPauseMin = Math.max(120000, Number(job.batch_pause_min_ms) || BATCH_MIN);
+  const batchPauseMax = Math.max(batchPauseMin, Number(job.batch_pause_max_ms) || BATCH_MAX);
 
   let attempts = 0;
   for (const r of recipients) {
@@ -106,8 +115,8 @@ async function runJob(jobId) {
       db.prepare('UPDATE blast_jobs SET failed = failed + 1 WHERE id = ?').run(jobId);
     }
 
-    let delay = rand(DELAY_MIN, DELAY_MAX);
-    if (attempts % BATCH_SIZE === 0) delay += rand(BATCH_MIN, BATCH_MAX);
+    let delay = rand(delayMin, delayMax);
+    if (attempts % batchSize === 0) delay += rand(batchPauseMin, batchPauseMax);
     await sleep(delay);
   }
 
