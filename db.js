@@ -69,10 +69,42 @@ CREATE TABLE IF NOT EXISTS blast_recipients (
 );
 CREATE TABLE IF NOT EXISTS user_send_preferences (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  profile TEXT NOT NULL DEFAULT 'recommended' CHECK (profile IN ('recommended','careful')),
+  profile TEXT NOT NULL DEFAULT 'recommended' CHECK (profile IN ('very_fast','fast','quick','recommended','careful','slow','very_careful')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 `);
+
+// Migrate existing databases that were created with the previous two-profile CHECK constraint.
+// SQLite cannot edit a CHECK constraint in place, so rebuild this small preference table safely.
+function migratePacingProfileConstraint() {
+  const table = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'user_send_preferences'").get();
+  const schema = String(table?.sql || '').toLowerCase();
+  const requiredProfiles = ['very_fast', 'fast', 'quick', 'recommended', 'careful', 'slow', 'very_careful'];
+  if (requiredProfiles.every(profile => schema.includes(profile))) return;
+
+  const migrate = db.transaction(() => {
+    db.exec(`
+      CREATE TABLE user_send_preferences_new (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        profile TEXT NOT NULL DEFAULT 'recommended'
+          CHECK (profile IN ('very_fast','fast','quick','recommended','careful','slow','very_careful')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      INSERT INTO user_send_preferences_new (user_id, profile, updated_at)
+      SELECT user_id,
+        CASE WHEN profile IN ('very_fast','fast','quick','recommended','careful','slow','very_careful')
+             THEN profile ELSE 'recommended' END,
+        COALESCE(updated_at, datetime('now'))
+      FROM user_send_preferences;
+      DROP TABLE user_send_preferences;
+      ALTER TABLE user_send_preferences_new RENAME TO user_send_preferences;
+    `);
+  });
+
+  migrate();
+  console.log('[DB Setup] Constraint profil ritme pengiriman diperbarui');
+}
+migratePacingProfileConstraint();
 
 // ==========================================
 // MIGRASI KOLOM (aman dijalankan berkali-kali)
