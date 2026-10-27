@@ -11,7 +11,8 @@ function tick() {
     const cutoff = new Date(Date.now() - parseInt(process.env.SCHEDULER_LOCK_TTL_MS || '120000', 10)).toISOString();
 
     const jobs = db.prepare(`
-      SELECT * FROM blast_jobs
+      SELECT id, user_id, scheduled_at, locked_by, locked_at
+      FROM blast_jobs
       WHERE status = 'pending'
         AND scheduled_at <= ?
         AND (locked_by IS NULL OR locked_at < ?)
