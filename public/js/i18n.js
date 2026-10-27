@@ -89,7 +89,7 @@
     'No campaigns yet.': 'Belum ada kampanye.',
     'Your campaign history will appear here.': 'Riwayat kampanye Anda akan muncul di sini.',
     'sent': 'terkirim',
-    'Made for deliberate communication.': 'Dibuat untuk komunikasi yang terarah.',
+    'Made with ♥ by Yusuf Zulkarnaen.': 'Dibuat dengan ♥ oleh Yusuf Zulkarnaen.',
     'Message templates': 'Templat pesan',
     'Reusable words, ready when you need them.': 'Pesan siap pakai kapan pun dibutuhkan.',
     'Create a template': 'Buat templat',
