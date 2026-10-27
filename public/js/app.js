@@ -29,7 +29,11 @@ function setStatus(element, message, kind = '') {
 function updateMessagePreview() {
   const text = templateBody?.value || '';
   const preview = $('#messagePreview');
-  if (preview) preview.textContent = text.trim() || 'Your message will appear here as you write.';
+  if (preview) {
+    if (text.trim()) preview.setAttribute('data-no-translate', '');
+    else preview.removeAttribute('data-no-translate');
+    preview.textContent = text.trim() || 'Your message will appear here as you write.';
+  }
   const chars = $('#charCount');
   if (chars) chars.textContent = `${text.length} character${text.length === 1 ? '' : 's'}`;
   const delivery = document.querySelector('input[name="mode"]:checked')?.value;
@@ -109,6 +113,7 @@ fileInput?.addEventListener('change', async event => {
       const addCell = (value, className = '') => {
         const td = document.createElement('td');
         td.textContent = value == null || value === '' ? '—' : String(value);
+        if (!className || className === 'phone-cell') td.setAttribute('data-no-translate', '');
         if (className) td.className = className;
         tr.appendChild(td);
       };
@@ -155,6 +160,7 @@ function renderMediaPreview(file, data = {}) {
     thumb.appendChild(label);
   }
   mediaSelected.classList.remove('hidden');
+  $('#attachmentSummary').setAttribute('data-no-translate', '');
   $('#attachmentSummary').textContent = name;
   const previewMedia = $('#previewMedia');
   previewMedia.textContent = `Attachment · ${name}`;
@@ -208,6 +214,7 @@ function clearMediaUi() {
   if (mediaInput) mediaInput.value = '';
   mediaSelected?.classList.add('hidden');
   $('#previewMedia')?.classList.add('hidden');
+  $('#attachmentSummary').removeAttribute('data-no-translate');
   $('#attachmentSummary').textContent = 'None';
   setStatus(mediaStatus, '');
   updateLaunchState();

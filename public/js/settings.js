@@ -12,9 +12,9 @@ async function refresh() {
   try {
     const r = await fetch('/api/session/status');
     const j = await r.json();
-    const map = { connected: '🟢 Connected', disconnected: '🔴 Terputus', awaiting_pairing: '🟡 Menunggu', pairing_code_issued: '🟡 Kode aktif', logged_out: '🔴 Logout', banned: '⛔ Diblokir' };
+    const map = { connected: '🟢 Connected', disconnected: '🔴 Disconnected', awaiting_pairing: '🟡 Waiting for pairing', pairing_code_issued: '🟡 Pairing code active', logged_out: '🔴 Logged out', banned: '⛔ Blocked' };
     badge.textContent = map[j.state] || '—';
-    info.textContent = j.waNumber ? `Nomor: ${j.waNumber}` : 'Belum ada nomor terhubung';
+    info.textContent = j.waNumber ? `Number: ${j.waNumber}` : 'No phone number connected';
 
     if (j.pairingCode) {
       // kode aktif -> tampilkan
@@ -32,7 +32,7 @@ async function refresh() {
     } else if (j.state === 'awaiting_pairing') {
       // lagi nunggu kode dibuat server
       pairingBox.classList.remove('hidden');
-      codeEl.textContent = '⏳ Menunggu kode...';
+      codeEl.textContent = '⏳ Waiting for code...';
       countdownEl.textContent = '';
     } else if (j.state === 'disconnected' || j.state === 'logged_out') {
       // gagal / expired -> tampilkan alasan kalau ada
@@ -42,14 +42,14 @@ async function refresh() {
         if (j.lastError) {
           pairingBox.classList.remove('hidden');
           codeEl.textContent = '—';
-          countdownEl.textContent = 'Gagal: ' + j.lastError + ' — generate ulang';
+          countdownEl.textContent = 'Failed: ' + j.lastError + ' — generate a new code';
         } else {
           pairingBox.classList.add('hidden');
         }
       }
     }
   } catch (err) {
-    console.error('Gagal refresh status', err);
+    console.error('Could not refresh status', err);
   }
 }
 
@@ -60,7 +60,7 @@ function startCountdown(expiresIso) {
   const target = new Date(expiresIso).getTime();
   const tick = () => {
     const left = Math.max(0, Math.round((target - Date.now()) / 1000));
-    countdownEl.textContent = left > 0 ? `Sisa waktu: ${left} detik` : 'Kode kedaluwarsa — generate ulang';
+    countdownEl.textContent = left > 0 ? `Time remaining: ${left} seconds` : 'Code expired — generate a new one';
     if (left <= 0) clearInterval(countdownHandle);
   };
   tick();
@@ -69,9 +69,9 @@ function startCountdown(expiresIso) {
 
 $('#pairBtn').addEventListener('click', async () => {
   const phone = $('#phone').value.trim();
-  if (!phone) return alert('Masukkan nomor');
+  if (!phone) return alert('Enter a phone number');
 
-  $('#pairBtn').textContent = 'Memproses...';
+  $('#pairBtn').textContent = 'Processing…';
   $('#pairBtn').disabled = true;
   lastCode = null;
 
@@ -86,10 +86,10 @@ $('#pairBtn').addEventListener('click', async () => {
 
     // kode belum ada di sini, nanti diisi otomatis oleh refresh()
     pairingBox.classList.remove('hidden');
-    codeEl.textContent = '⏳ Menunggu kode...';
+    codeEl.textContent = '⏳ Waiting for code...';
     countdownEl.textContent = '';
   } catch (err) {
-    alert('Gagal pairing: ' + err.message);
+    alert('Pairing failed: ' + err.message);
   } finally {
     $('#pairBtn').textContent = 'Generate Pairing Code';
     $('#pairBtn').disabled = false;
@@ -98,7 +98,7 @@ $('#pairBtn').addEventListener('click', async () => {
 });
 
 $('#disconnectBtn').addEventListener('click', async () => {
-  if (!confirm('Putuskan sesi WhatsApp?')) return;
+  if (!confirm('Disconnect the WhatsApp session?')) return;
   await fetch('/settings/disconnect', { method: 'POST', headers: { 'X-CSRF-Token': window.CSRF } });
   pairingBox.classList.add('hidden');
   lastCode = null;
@@ -109,7 +109,7 @@ $('#disconnectBtn').addEventListener('click', async () => {
 $('#btnChangePass')?.addEventListener('click', async () => {
   const oldPassword = $('#oldPass').value;
   const newPassword = $('#newPass').value;
-  if (!oldPassword || !newPassword) return alert('Isi semua kolom');
+  if (!oldPassword || !newPassword) return alert('Fill in all fields');
 
   const r = await fetch('/api/settings/change-password', {
     method: 'POST',
@@ -118,7 +118,7 @@ $('#btnChangePass')?.addEventListener('click', async () => {
   });
   const j = await r.json();
   if (r.ok) {
-    alert('Password berhasil diubah!');
+    alert('Password changed successfully!');
     $('#oldPass').value = ''; $('#newPass').value = '';
   } else {
     alert('Gagal: ' + j.error);
