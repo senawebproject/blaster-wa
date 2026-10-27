@@ -54,9 +54,8 @@ async function runJob(jobId) {
     "SELECT * FROM blast_recipients WHERE job_id = ? AND status = 'pending' AND is_valid = 1 ORDER BY id ASC"
   ).all(jobId);
 
-  // Do not allow a campaign to run faster than these conservative minimums,
-  // even if old jobs or environment variables contain smaller values.
-  const delayMin = Math.max(15000, Number(job.send_delay_min_ms) || DELAY_MIN);
+  // Enforce a hard floor of 2 seconds; configured fast profiles may use this floor.
+  const delayMin = Math.max(2000, Number(job.send_delay_min_ms) || DELAY_MIN);
   const delayMax = Math.max(delayMin, Number(job.send_delay_max_ms) || DELAY_MAX);
   const batchSize = Math.max(5, Math.min(100, Number(job.batch_size) || BATCH_SIZE));
   const batchPauseMin = Math.max(120000, Number(job.batch_pause_min_ms) || BATCH_MIN);
