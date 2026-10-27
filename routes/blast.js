@@ -64,8 +64,8 @@ router.post('/api/blast/start', requireAuthApi, verifyCsrf, (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?)
   `);
   const insertRecipient = db.prepare(`
-    INSERT INTO blast_recipients (job_id, name_raw, phone_raw, phone_normalized, is_valid, status)
-    VALUES (?, ?, ?, ?, 1, 'pending')
+    INSERT INTO blast_recipients (job_id, name_raw, phone_raw, phone_normalized, is_valid, status, data_json)
+    VALUES (?, ?, ?, ?, 1, 'pending', ?)
   `);
 
   const tx = db.transaction(() => {
@@ -76,7 +76,13 @@ router.post('/api/blast/start', requireAuthApi, verifyCsrf, (req, res) => {
       scheduledIso, jobStatus, validRows.length
     );
     for (const r of validRows) {
-      insertRecipient.run(info.lastInsertRowid, r.name, r.phoneRaw, r.phoneNormalized);
+      insertRecipient.run(
+        info.lastInsertRowid,
+        r.name,
+        r.phoneRaw,
+        r.phoneNormalized,
+        JSON.stringify(r.raw || {})   // simpan SEMUA kolom dari file upload
+      );
     }
     return info.lastInsertRowid;
   });
